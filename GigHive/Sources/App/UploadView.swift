@@ -1,6 +1,12 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// Helper struct for file size error state
+struct FileSizeError: Equatable {
+    let fileSize: String
+    let maxSize: String
+}
+
 struct LabeledField<Content: View>: View {
     let label: String
     let helper: String?
@@ -55,6 +61,7 @@ struct UploadView: View {
     // Ensure loading text is visible for at least a minimum duration
     @State private var mediaLoadingStartedAt: Date? = nil
     @State private var lastProgressBucket: Int = 0
+    @State private var pendingFileSizeError: FileSizeError? = nil
 
     let onUpload: (UploadPayload) -> Void
     @Environment(\.openURL) private var openURL
@@ -308,7 +315,7 @@ struct UploadView: View {
         }
         .ghFullScreenBackground(GHTheme.bg)
         .sheet(isPresented: $showPhotosPicker) {
-            PHPickerView { url in
+            PHPickerView(selectionHandler: { url in
                 // Clear old debug log when selecting new file
                 debugLog = []
 
@@ -353,7 +360,19 @@ struct UploadView: View {
                     self.isLoadingMedia = false
                     debugLog.append("photos canceled")
                 }
-            }
+            }, onFileTooLarge: { fileSize, maxSize in
+                // Dismiss picker first, then set error state
+                print("🚫 [PHPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
+                debugLog.append("file rejected: \(fileSize) > \(maxSize)")
+                self.showPhotosPicker = false
+                print("🚫 [PHPicker] Dismissed picker sheet")
+                // Delay setting error until after picker dismisses
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    print("🚫 [PHPicker] Setting pendingFileSizeError state")
+                    self.pendingFileSizeError = FileSizeError(fileSize: fileSize, maxSize: maxSize)
+                    print("🚫 [PHPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
+                }
+            })
             .modifier(PresentationDetentsCompat())
         }
         .sheet(isPresented: $showFilesPicker) {
@@ -409,9 +428,42 @@ struct UploadView: View {
                         self.isLoadingMedia = false
                         debugLog.append("files canceled")
                     }
+                },
+                onFileTooLarge: { fileSize, maxSize in
+                    // Dismiss picker first, then set error state
+                    print("🚫 [DocumentPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
+                    debugLog.append("file rejected: \(fileSize) > \(maxSize)")
+                    self.showFilesPicker = false
+                    print("🚫 [DocumentPicker] Dismissed picker sheet")
+                    // Delay setting error until after picker dismisses
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        print("🚫 [DocumentPicker] Setting pendingFileSizeError state")
+                        self.pendingFileSizeError = FileSizeError(fileSize: fileSize, maxSize: maxSize)
+                        print("🚫 [DocumentPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
+                    }
                 }
             )
             .modifier(PresentationDetentsCompat())
+        }
+        .onChange(of: pendingFileSizeError) { error in
+            // Trigger alert when file size error is set, with delay to allow picker to fully dismiss
+            print("🔔 [onChange] pendingFileSizeError changed to: \(String(describing: error))")
+            guard let error = error else { 
+                print("🔔 [onChange] Error is nil, returning")
+                return 
+            }
+            print("🔔 [onChange] Scheduling alert with 0.6s delay")
+            let fileSize = error.fileSize
+            let maxSize = error.maxSize
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                print("🔔 [onChange] Showing alert now")
+                self.alertTitle = "File Too Large"
+                self.alertMessage = "The selected file (\(fileSize)) exceeds the maximum allowed size of \(maxSize).\n\nPlease select a smaller file or compress the video before uploading."
+                self.showResultAlert = true
+                print("🔔 [onChange] showResultAlert set to true")
+                self.pendingFileSizeError = nil  // Clear after showing
+                print("🔔 [onChange] Cleared pendingFileSizeError")
+            }
         }
         .onChange(of: autogenLabel) { on in if on { label = autoLabel() }; resetCancelledStatus() }
         .onChange(of: eventDate) { _ in if autogenLabel { label = autoLabel() }; resetCancelledStatus() }
@@ -429,6 +481,13 @@ struct UploadView: View {
         .onAppear {
             // Initialize META picker from the last used value
             eventType = storedEventType
+        }
+        .alert(isPresented: $showResultAlert) {
+            Alert(
+                title: Text(alertTitle),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 
@@ -454,6 +513,15 @@ struct UploadView: View {
         // Check media file
         if fileURL == nil {
             messages.append("Please select a media file")
+        } else {
+            // Validate file size if file is selected
+            if let fileSize = try? fileURL?.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                if Int64(fileSize) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                    let fileSizeText = ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
+                    let maxSizeText = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                    messages.append("File too large (\(fileSizeText)) - max allowed: \(maxSizeText)")
+                }
+            }
         }
                 
         // Check organization name
@@ -480,11 +548,21 @@ struct UploadView: View {
         debugLog = ["button pressed"]
         guard let fileURL else { debugLog.append("no file chosen"); alertTitle = "Missing file"; alertMessage = "Please choose a media file from Photos or Files."; showResultAlert = true; return }
         
-        // Add file size to debug log
+        // Add file size to debug log and validate against max upload size
         do {
             let fileSize = try fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
             let fileSizeText = ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
             debugLog.append("file size: \(fileSizeText)")
+            
+            // Validate file size
+            if Int64(fileSize) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                let maxSizeText = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                debugLog.append("file too large: \(fileSizeText) > \(maxSizeText)")
+                alertTitle = "File Too Large"
+                alertMessage = "The selected file (\(fileSizeText)) exceeds the maximum allowed size of \(maxSizeText).\n\nPlease select a smaller file or compress the video before uploading."
+                showResultAlert = true
+                return
+            }
         } catch {
             debugLog.append("file size: unknown")
         }
@@ -570,6 +648,8 @@ struct UploadView: View {
                     DispatchQueue.main.async {
                         self.fileURL = nil
                         self.label = ""
+                        // Hide keyboard after successful upload
+                        self.hideKeyboard()
                     }
                     debugLog.append("cleared file and label")
                     debugLog.append("\n\nYou are free to upload another file.")

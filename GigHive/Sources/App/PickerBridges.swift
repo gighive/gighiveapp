@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 // SwiftUI wrapper for PHPickerViewController (iOS 14+)
 struct PHPickerView: UIViewControllerRepresentable {
     var selectionHandler: (URL?) -> Void
+    var onFileTooLarge: ((String, String) -> Void)? = nil  // (fileSize, maxSize) -> Void
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -41,7 +42,19 @@ struct PHPickerView: UIViewControllerRepresentable {
                         try FileManager.default.copyItem(at: url, to: tmp)
                         // Debug: Log temp path and size (metadata-only, no full file read)
                         if let size = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                            print("📹 PHPicker: Copied video to \(tmp.lastPathComponent), size: \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))")
+                            let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                            print("📹 PHPicker: Copied video to \(tmp.lastPathComponent), size: \(sizeStr)")
+                            
+                            // Validate file size against max upload limit
+                            if Int64(size) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                                let maxStr = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                                print("⚠️ PHPicker: File too large (\(sizeStr)) - exceeds max allowed size (\(maxStr))")
+                                DispatchQueue.main.async {
+                                    self.parent.onFileTooLarge?(sizeStr, maxStr)
+                                    self.parent.selectionHandler(nil)
+                                }
+                                return
+                            }
                         }
                         DispatchQueue.main.async { self.parent.selectionHandler(tmp) }
                     } catch {
@@ -59,6 +72,7 @@ struct PHPickerView: UIViewControllerRepresentable {
 struct DocumentPickerView: UIViewControllerRepresentable {
     var allowedTypes: [UTType]
     var onPick: (URL?) -> Void
+    var onFileTooLarge: ((String, String) -> Void)? = nil  // (fileSize, maxSize) -> Void
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: allowedTypes, asCopy: true)
@@ -85,7 +99,17 @@ struct DocumentPickerView: UIViewControllerRepresentable {
                 try FileManager.default.copyItem(at: url, to: tmp)
                 // Debug: Log temp path and size (metadata-only, no full file read)
                 if let size = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                    print("📁 DocumentPicker: Copied file to \(tmp.lastPathComponent), size: \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))")
+                    let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                    print("📁 DocumentPicker: Copied file to \(tmp.lastPathComponent), size: \(sizeStr)")
+                    
+                    // Validate file size against max upload limit
+                    if Int64(size) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                        let maxStr = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                        print("⚠️ DocumentPicker: File too large (\(sizeStr)) - exceeds max allowed size (\(maxStr))")
+                        parent.onFileTooLarge?(sizeStr, maxStr)
+                        parent.onPick(nil)
+                        return
+                    }
                 }
                 parent.onPick(tmp)
             } catch {
