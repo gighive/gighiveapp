@@ -1,0 +1,152 @@
+# Estimated Load Time Feature - OPTIONAL ENHANCEMENT
+# Created: October 7, 2025
+# Status: Rolled back - user wanted to test more before committing
+
+## Summary
+Shows estimated load time based on video duration when selecting from Photos.
+Uses 1:1 ratio (1 minute of video = 1 minute load time on iPhone 12).
+
+## Changes Required
+
+### 1. PickerBridges.swift
+
+```swift
+// Line 7: Add duration handler parameter
+struct PHPickerView: UIViewControllerRepresentable {
+    var selectionHandler: (URL?) -> Void
+    var durationEstimateHandler: ((Int) -> Void)? = nil  // Pass video duration in minutes
+```
+
+```swift
+// Lines 26-41: Get video duration from PHAsset
+func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    picker.dismiss(animated: true)
+    guard let result = results.first else { parent.selectionHandler(nil); return }
+    let provider = result.itemProvider
+    let typeId = UTType.movie.identifier
+    if provider.hasItemConformingToTypeIdentifier(typeId) {
+        // First, try to get the PHAsset to extract video duration using assetIdentifier
+        if let assetId = result.assetIdentifier {
+            let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
+            if let asset = fetchResult.firstObject {
+                let durationMinutes = Int(ceil(asset.duration / 60.0))
+                DispatchQueue.main.async {
+                    self.parent.durationEstimateHandler?(durationMinutes)
+                }
+            }
+        }
+        
+        // Then proceed with file loading
+        provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
+```
+
+### 2. UploadView.swift
+
+```swift
+// Line 55: Add state variable
+@State private var videoLoadEstimateMinutes: Int? = nil  // Estimated load time based on video duration
+```
+
+```swift
+// Lines 135-143: Clear estimate when selecting
+Menu {
+    Button("From Photos", action: { 
+        loadedFileSize = nil
+        videoLoadEstimateMinutes = nil  // Clear previous estimate
+        isLoadingMedia = true
+        showPhotosPicker = true 
+    })
+    Button("From Files", action: { 
+        loadedFileSize = nil
+        videoLoadEstimateMinutes = nil  // Clear previous estimate
+        isLoadingMedia = true
+        showFilesPicker = true 
+    })
+}
+```
+
+```swift
+// Lines 160-169: Show estimated time message
+if isLoadingMedia || (fileURL != nil && loadedFileSize == nil) {
+    if let estimateMinutes = videoLoadEstimateMinutes {
+        Text("Preparing \(estimateMinutes)-minute video...estimated \(estimateMinutes) minute\(estimateMinutes == 1 ? "" : "s") load time")
+            .font(.caption2)
+            .foregroundColor(.orange)
+    } else {
+        Text("Loading media metadata…please wait until file size is displayed.")
+            .font(.caption2)
+            .foregroundColor(.red)
+    }
+}
+```
+
+```swift
+// Lines 298-359: Update PHPickerView with duration handler
+.sheet(isPresented: $showPhotosPicker) {
+    PHPickerView(
+        selectionHandler: { url in
+            // ... existing code ...
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
+                self.loadedFileSize = sizeText
+                self.isLoadingMedia = false
+                self.mediaLoadingStartedAt = nil
+                self.videoLoadEstimateMinutes = nil  // Clear estimate when done
+                debugLog.append("file metadata loaded (\(sizeText))")
+                debugLog.append("picked from Photos")
+            }
+        } else {
+            // User cancelled
+            self.showPhotosPicker = false
+            self.fileURL = nil
+            self.loadedFileSize = nil
+            self.isLoadingMedia = false
+            self.videoLoadEstimateMinutes = nil  // Clear estimate on cancel
+            debugLog.append("photos canceled")
+        }
+    },
+        durationEstimateHandler: { durationMinutes in
+            self.videoLoadEstimateMinutes = durationMinutes
+            debugLog.append("video duration: \(durationMinutes) min (estimated load time)")
+        }
+    )
+    .modifier(PresentationDetentsCompat())
+}
+```
+
+## Example Messages
+
+- 1-minute video: "Preparing 1-minute video...estimated 1 minute load time"
+- 5-minute video: "Preparing 5-minute video...estimated 5 minutes load time"
+- 24-minute video: "Preparing 24-minute video...estimated 24 minutes load time"
+- Unknown duration: "Loading media metadata…please wait until file size is displayed."
+
+## Pros
+- ✅ Sets user expectations
+- ✅ Truthful (based on observed 1:1 ratio)
+- ✅ Shows video duration
+- ✅ Falls back gracefully if duration unavailable
+
+## Cons
+- ❌ Estimate may be inaccurate on different devices
+- ❌ Adds complexity
+- ❌ User might get impatient seeing "24 minutes"
+- ❌ No actual progress bar (just an estimate)
+
+## Testing Notes
+- Tested on iPhone 12
+- 1:1 ratio observed (1 min video = 1 min load)
+- May vary on newer/older devices
+- May vary based on video codec (HEVC vs H.264)
+
+## To Apply This Patch
+1. Review the changes above
+2. Apply each change manually to the respective files
+3. Build and test
+4. Adjust the 1:1 ratio if needed for your device
+
+## To Improve This Feature
+- Add a progress bar that fills based on elapsed time vs estimate
+- Calibrate the ratio per device model
+- Show "faster than expected" if it finishes early
+- Add a spinner animation

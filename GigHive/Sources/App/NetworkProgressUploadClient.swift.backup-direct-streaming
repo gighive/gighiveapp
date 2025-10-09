@@ -1,0 +1,418 @@
+import Foundation
+import UniformTypeIdentifiers
+
+/// Network-aware upload client that tracks REAL network progress, not file reading progress
+/// Uses direct streaming: builds multipart body on disk (Layer 1), then streams from file (Layer 2)
+final class NetworkProgressUploadClient: NSObject {
+    private let baseURL: URL
+    private let basicAuth: (user: String, pass: String)?
+    private let allowInsecure: Bool
+    private var session: URLSession!
+    
+    // Progress tracking
+    private var progressHandler: ((Int64, Int64) -> Void)?
+    private var completion: ((Result<(status: Int, data: Data, requestURL: URL), Error>) -> Void)?
+    private var currentUploadTask: URLSessionUploadTask?
+    private var currentTempBodyURL: URL?  // Track temp file for cleanup
+    private var responseData = Data()  // Accumulate response data
+    
+    // Configurable constants
+    private let chunkSize = 4 * 1024 * 1024  // 4MB chunks for Layer 1 assembly
+    private let multipartOverhead = 5 * 1024 * 1024  // 5MB conservative estimate for headers/boundaries
+    private let diskSafetyMargin = 200 * 1024 * 1024  // 200MB safety margin
+    
+    init(baseURL: URL, basicAuth: (String, String)?, allowInsecure: Bool) {
+        self.baseURL = baseURL
+        self.basicAuth = basicAuth
+        self.allowInsecure = allowInsecure
+        
+        super.init()
+        
+        // Configure session with longer timeouts for large file uploads
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 300  // 5 minutes per request
+        config.timeoutIntervalForResource = 3600  // 1 hour total for the upload
+        config.allowsExpensiveNetworkAccess = true
+        config.allowsConstrainedNetworkAccess = true
+        
+        if allowInsecure {
+            let delegate = InsecureTrustUploadDelegate(uploadClient: self)
+            self.session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+        } else {
+            self.session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        }
+    }
+    
+    /// Upload file with REAL network progress tracking using direct streaming
+    /// Layer 1: Assembles multipart body on disk in chunks
+    /// Layer 2: Streams from disk file via URLSession.uploadTask(fromFile:)
+    func uploadFile(
+        payload: UploadPayload,
+        progressHandler: @escaping (Int64, Int64) -> Void,
+        completion: @escaping (Result<(status: Int, data: Data, requestURL: URL), Error>) -> Void
+    ) {
+        self.progressHandler = progressHandler
+        self.completion = completion
+        self.responseData = Data()  // Reset response data accumulator
+        
+        Task {
+            do {
+                print("🚀 Upload starting for file: \(payload.fileURL.lastPathComponent)")
+                
+                // Preflight: Check disk space
+                try checkDiskSpace(for: payload.fileURL)
+                print("✅ Disk space check passed")
+                
+                // Build URL
+                let apiURL = baseURL
+                    .appendingPathComponent("api")
+                    .appendingPathComponent("uploads.php")
+                var components = URLComponents(url: apiURL, resolvingAgainstBaseURL: false)
+                components?.queryItems = [URLQueryItem(name: "ui", value: "json")]
+                guard let finalURL = components?.url else { 
+                    completion(.failure(URLError(.badURL)))
+                    return
+                }
+                
+                var request = URLRequest(url: finalURL)
+                request.httpMethod = "POST"
+                
+                // Add basic auth
+                if let auth = basicAuth {
+                    let credentials = "\(auth.user):\(auth.pass)"
+                    let encodedCredentials = Data(credentials.utf8).base64EncodedString()
+                    request.setValue("Basic \(encodedCredentials)", forHTTPHeaderField: "Authorization")
+                }
+                
+                request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
+                
+                // Layer 1: Create multipart body on disk (chunked, no full file in RAM)
+                let boundary = "Boundary-\(UUID().uuidString)"
+                request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                
+                print("🔧 Starting Layer 1: Assembling multipart body on disk...")
+                let tempBodyURL = try await createMultipartBodyOnDisk(payload: payload, boundary: boundary)
+                self.currentTempBodyURL = tempBodyURL  // Track for cleanup
+                print("✅ Layer 1 complete: Multipart body ready")
+                
+                // Layer 2: Upload from file - iOS streams from disk
+                print("📤 Starting Layer 2: Uploading from disk...")
+                
+                // Debug: Check temp file size
+                let tempFileSize = try? tempBodyURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                print("🔍 Temp file size: \(ByteCountFormatter.string(fromByteCount: Int64(tempFileSize ?? 0), countStyle: .file))")
+                print("🔍 Request URL: \(request.url?.absoluteString ?? "nil")")
+                print("🔍 Request method: \(request.httpMethod ?? "nil")")
+                print("🔍 Content-Type: \(request.value(forHTTPHeaderField: "Content-Type") ?? "nil")")
+                
+                let task = session.uploadTask(with: request, fromFile: tempBodyURL)
+                self.currentUploadTask = task  // Store reference for cancellation
+                
+                print("🔍 Task created, state: \(task.state.rawValue)")
+                
+                task.resume()
+                print("✅ Upload task resumed, state: \(task.state.rawValue)")
+                print("✅ Waiting for progress callbacks and completion...")
+                
+                // Note: Completion will be handled by URLSessionTaskDelegate.didCompleteWithError
+                // Response data accumulated in URLSessionDataDelegate.didReceive
+                
+            } catch {
+                print("❌ Upload error: \(error.localizedDescription)")
+                cleanupTempFile()
+                completion(.failure(error))
+            }
+        }
+    }
+    
+    /// Cancel the current upload task and cleanup temp file
+    func cancelUpload() {
+        currentUploadTask?.cancel()
+        currentUploadTask = nil
+        cleanupTempFile()
+    }
+    
+    // MARK: - Disk Space Preflight
+    
+    /// Check if there's enough disk space before starting upload
+    /// Required space ≈ videoSize + multipartOverhead + diskSafetyMargin
+    private func checkDiskSpace(for fileURL: URL) throws {
+        let fileSize = try fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+        let requiredSpace = Int64(fileSize + multipartOverhead + diskSafetyMargin)
+        
+        // Get available disk space
+        let volumeURL = fileURL.deletingLastPathComponent()
+        let volumeValues = try volumeURL.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+        let availableSpace = volumeValues.volumeAvailableCapacityForImportantUsage ?? 0
+        
+        if availableSpace < requiredSpace {
+            let formatter = ByteCountFormatter()
+            formatter.countStyle = .file
+            let needed = formatter.string(fromByteCount: requiredSpace)
+            let available = formatter.string(fromByteCount: availableSpace)
+            throw NSError(
+                domain: "NetworkProgressUploadClient",
+                code: -1,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Insufficient disk space. Need \(needed), but only \(available) available. Please free up space and try again."
+                ]
+            )
+        }
+    }
+    
+    // MARK: - Layer 1: Multipart Assembly on Disk
+    
+    /// Create multipart body on disk incrementally (no full file in RAM)
+    /// Returns URL to the temporary multipart file
+    private func createMultipartBodyOnDisk(payload: UploadPayload, boundary: String) async throws -> URL {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
+        // Create temp file for multipart body
+        let tempBodyURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("multipart-\(UUID().uuidString).tmp")
+        
+        // Create the file
+        FileManager.default.createFile(atPath: tempBodyURL.path, contents: nil)
+        
+        // Open for writing
+        let bodyHandle = try FileHandle(forWritingTo: tempBodyURL)
+        defer {
+            if #available(iOS 13.0, *) {
+                try? bodyHandle.close()
+            } else {
+                bodyHandle.closeFile()
+            }
+        }
+        
+        // Helper to write strings
+        func write(_ string: String) throws {
+            if #available(iOS 13.4, *) {
+                try bodyHandle.write(contentsOf: Data(string.utf8))
+            } else {
+                bodyHandle.write(Data(string.utf8))
+            }
+        }
+        
+        // Write text fields with boundaries
+        try write("--\(boundary)\r\n")
+        try write("Content-Disposition: form-data; name=\"event_date\"\r\n\r\n")
+        try write("\(dateFormatter.string(from: payload.eventDate))\r\n")
+        
+        try write("--\(boundary)\r\n")
+        try write("Content-Disposition: form-data; name=\"org_name\"\r\n\r\n")
+        try write("\(payload.orgName)\r\n")
+        
+        try write("--\(boundary)\r\n")
+        try write("Content-Disposition: form-data; name=\"event_type\"\r\n\r\n")
+        try write("\(payload.eventType)\r\n")
+        
+        if let v = payload.label, !v.isEmpty {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"label\"\r\n\r\n")
+            try write("\(v)\r\n")
+        }
+        
+        if let v = payload.participants, !v.isEmpty {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"participants\"\r\n\r\n")
+            try write("\(v)\r\n")
+        }
+        
+        if let v = payload.keywords, !v.isEmpty {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"keywords\"\r\n\r\n")
+            try write("\(v)\r\n")
+        }
+        
+        if let v = payload.location, !v.isEmpty {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"location\"\r\n\r\n")
+            try write("\(v)\r\n")
+        }
+        
+        if let v = payload.rating, !v.isEmpty {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"rating\"\r\n\r\n")
+            try write("\(v)\r\n")
+        }
+        
+        if let v = payload.notes, !v.isEmpty {
+            try write("--\(boundary)\r\n")
+            try write("Content-Disposition: form-data; name=\"notes\"\r\n\r\n")
+            try write("\(v)\r\n")
+        }
+        
+        // Write file part header
+        let filename = payload.fileURL.lastPathComponent
+        let mimeType = getMimeType(for: payload.fileURL)
+        
+        try write("--\(boundary)\r\n")
+        try write("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n")
+        try write("Content-Type: \(mimeType)\r\n\r\n")
+        
+        // Stream video file in chunks (Layer 1 chunking)
+        let inHandle = try FileHandle(forReadingFrom: payload.fileURL)
+        defer {
+            if #available(iOS 13.0, *) {
+                try? inHandle.close()
+            } else {
+                inHandle.closeFile()
+            }
+        }
+        
+        // Copy file in chunks without loading full file into RAM
+        // Track progress and report dots for Layer 1 assembly feedback
+        var bytesWritten: Int64 = 0
+        let dotInterval: Int64 = 10 * 1024 * 1024  // Show dot every 10MB
+        var nextDotThreshold: Int64 = dotInterval
+        
+        while true {
+            let chunk: Data
+            if #available(iOS 13.4, *) {
+                guard let data = try inHandle.read(upToCount: chunkSize), !data.isEmpty else { break }
+                chunk = data
+            } else {
+                let data = inHandle.readData(ofLength: chunkSize)
+                if data.isEmpty { break }
+                chunk = data
+            }
+            
+            if #available(iOS 13.4, *) {
+                try bodyHandle.write(contentsOf: chunk)
+            } else {
+                bodyHandle.write(chunk)
+            }
+            
+            // Report Layer 1 assembly progress as dots (every 10MB)
+            bytesWritten += Int64(chunk.count)
+            if bytesWritten >= nextDotThreshold {
+                DispatchQueue.main.async {
+                    // Send a small negative progress to signal "preparing" with dots
+                    // The UI can detect negative values and show dots instead of percentages
+                    self.progressHandler?(-1, -1)  // Special signal for "assembly in progress"
+                }
+                nextDotThreshold += dotInterval
+            }
+        }
+        
+        // Write closing boundary
+        try write("\r\n--\(boundary)--\r\n")
+        
+        return tempBodyURL
+    }
+    
+    // MARK: - Cleanup
+    
+    /// Delete the temporary multipart body file
+    private func cleanupTempFile() {
+        guard let tempURL = currentTempBodyURL else { return }
+        try? FileManager.default.removeItem(at: tempURL)
+        currentTempBodyURL = nil
+    }
+    
+    private func getMimeType(for url: URL) -> String {
+        if #available(iOS 14.0, *) {
+            if let type = UTType(filenameExtension: url.pathExtension), 
+               let mimeType = type.preferredMIMEType {
+                return mimeType
+            }
+        }
+        
+        switch url.pathExtension.lowercased() {
+        case "mp4": return "video/mp4"
+        case "mov": return "video/quicktime"
+        case "m4a": return "audio/m4a"
+        case "mp3": return "audio/mpeg"
+        default: return "application/octet-stream"
+        }
+    }
+}
+
+// MARK: - URLSessionTaskDelegate (REAL Network Progress)
+extension NetworkProgressUploadClient: URLSessionTaskDelegate {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        // This is REAL network progress - bytes actually sent over the network!
+        print("📊 Delegate didSendBodyData: \(totalBytesSent)/\(totalBytesExpectedToSend) bytes (\(Int((Double(totalBytesSent)/Double(totalBytesExpectedToSend))*100))%)")
+        DispatchQueue.main.async {
+            self.progressHandler?(totalBytesSent, totalBytesExpectedToSend)
+        }
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        print("🏁 Delegate didCompleteWithError called - error: \(error?.localizedDescription ?? "nil")")
+        print("🏁 Response: \(task.response.debugDescription)")
+        print("🏁 Status code: \((task.response as? HTTPURLResponse)?.statusCode ?? -1)")
+        
+        DispatchQueue.main.async {
+            self.cleanupTempFile()  // Always cleanup temp file
+            
+            if let error = error {
+                // Task failed or was cancelled
+                print("❌ Completing with error: \(error.localizedDescription)")
+                self.completion?(.failure(error))
+            } else {
+                // Task completed successfully - return accumulated response data
+                let status = (task.response as? HTTPURLResponse)?.statusCode ?? -1
+                let requestURL = task.originalRequest?.url ?? self.baseURL
+                print("✅ Completing with success - status: \(status), data size: \(self.responseData.count) bytes")
+                self.completion?(.success((status: status, data: self.responseData, requestURL: requestURL)))
+            }
+            
+            // Clear state
+            self.responseData = Data()
+            self.completion = nil
+            self.progressHandler = nil
+        }
+    }
+}
+
+// MARK: - URLSessionDataDelegate
+extension NetworkProgressUploadClient: URLSessionDataDelegate {
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        completionHandler(.allow)
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        // Accumulate response data (can be called multiple times)
+        // Completion will be called in didCompleteWithError with all accumulated data
+        self.responseData.append(data)
+    }
+}
+
+/// Combined delegate for handling both insecure trust and progress tracking
+class InsecureTrustUploadDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate, URLSessionDataDelegate {
+    private weak var uploadClient: NetworkProgressUploadClient?
+    
+    init(uploadClient: NetworkProgressUploadClient) {
+        self.uploadClient = uploadClient
+    }
+    
+    // Handle insecure trust challenges (same as InsecureTrustDelegate)
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        // Accept any certificate (insecure mode)
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust {
+            let credential = URLCredential(trust: challenge.protectionSpace.serverTrust!)
+            completionHandler(.useCredential, credential)
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
+    
+    // Forward progress to NetworkProgressUploadClient
+    func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
+        uploadClient?.urlSession(session, task: task, didSendBodyData: bytesSent, totalBytesSent: totalBytesSent, totalBytesExpectedToSend: totalBytesExpectedToSend)
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        uploadClient?.urlSession(session, task: task, didCompleteWithError: error)
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        uploadClient?.urlSession(session, dataTask: dataTask, didReceive: response, completionHandler: completionHandler)
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        uploadClient?.urlSession(session, dataTask: dataTask, didReceive: data)
+    }
+}

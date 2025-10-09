@@ -1,0 +1,21 @@
+import SwiftUI
+
+@main
+struct GigHiveApp: App {
+    var body: some Scene {
+        WindowGroup {
+            if #available(iOS 16.0, *) {
+                NavigationStack {
+                    UploadFormView()                       // ← use the full form
+                        .environmentObject(SettingsStore()) // ← inject if your app needs it
+                }
+            } else {
+                NavigationView {
+                    UploadFormView()
+                        .environmentObject(SettingsStore())
+                }
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+        }
+    }
+}

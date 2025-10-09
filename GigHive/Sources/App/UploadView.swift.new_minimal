@@ -1,0 +1,105 @@
+
+// This version keeps your existing UI but assumes streaming upload in UploadClient.
+// Ensure any size displays use metadata only (no full-file reads).
+
+import SwiftUI
+import UniformTypeIdentifiers
+import Photos
+
+struct LabeledField<Content: View>: View {
+    let label: String
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label).font(.caption).foregroundColor(.secondary)
+            content()
+        }
+    }
+}
+
+struct UploadView: View {
+    @State private var debugLog: [String] = []
+    @State private var showPhotosPicker = false
+    @State private var showFilesPicker = false
+    @State private var isLoadingMedia = false
+    @State private var fileURL: URL? = nil
+    @State private var loadedFileSize: String? = nil
+    @State private var loadedFileSizeBytes: Int? = nil
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var showResultAlert = false
+    @State private var mediaLoadingStartedAt: Date? = nil
+
+    // ... (Your other states and UI as in your latest UploadView.swift)
+
+    var body: some View {
+        VStack {
+            // ... Your existing layout
+            Button("Pick from Photos") { showPhotosPicker = true }
+                .sheet(isPresented: $showPhotosPicker) {
+                    PHPickerView { result in
+                        guard case let .success(url) = result else {
+                            if case let .failure(err) = result {
+                                debugLog.append("photos picker failure: \(err.localizedDescription)")
+                            } else {
+                                debugLog.append("photos picker: user cancelled")
+                            }
+                            showPhotosPicker = false
+                            return
+                        }
+                        debugLog = []
+                        mediaLoadingStartedAt = Date()
+                        isLoadingMedia = true
+                        loadedFileSize = nil
+                        fileURL = url
+                        showPhotosPicker = false
+                        debugLog.append("Photos: selected \(url.lastPathComponent)")
+
+                        // Size via metadata only
+                        do {
+                            if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                                loadedFileSizeBytes = size
+                                loadedFileSize = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                                debugLog.append("Size: \(loadedFileSize!) (\(size) bytes)")
+                            }
+                        } catch {
+                            debugLog.append("Failed to read file size: \(error.localizedDescription)")
+                        }
+                        isLoadingMedia = false
+                    }
+                }
+
+            Button("Pick from Files") { showFilesPicker = true }
+                .sheet(isPresented: $showFilesPicker) {
+                    DocumentPickerView(allowedTypes: [.movie, .mpeg4Movie, .audio]) { url in
+                        guard let url = url else { return }
+                        debugLog = []
+                        isLoadingMedia = true
+                        fileURL = url
+                        debugLog.append("Files: selected \(url.lastPathComponent)")
+                        do {
+                            if let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                                loadedFileSizeBytes = size
+                                loadedFileSize = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                                debugLog.append("Size: \(loadedFileSize!) (\(size) bytes)")
+                            }
+                        } catch {
+                            debugLog.append("Failed to read file size: \(error.localizedDescription)")
+                        }
+                        isLoadingMedia = false
+                    }
+                }
+
+            if let f = fileURL, let human = loadedFileSize {
+                Text("Ready to upload: \(f.lastPathComponent) — \(human)")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+
+            // ... rest of your UI and triggers to call UploadClient.upload(...)
+        }
+        .alert(isPresented: $showResultAlert) {
+            Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+        }
+    }
+}

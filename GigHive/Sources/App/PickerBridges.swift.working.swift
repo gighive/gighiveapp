@@ -39,10 +39,6 @@ struct PHPickerView: UIViewControllerRepresentable {
                         // Remove if exists
                         try? FileManager.default.removeItem(at: tmp)
                         try FileManager.default.copyItem(at: url, to: tmp)
-                        // Debug: Log temp path and size (metadata-only, no full file read)
-                        if let size = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                            print("📹 PHPicker: Copied video to \(tmp.lastPathComponent), size: \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))")
-                        }
                         DispatchQueue.main.async { self.parent.selectionHandler(tmp) }
                     } catch {
                         DispatchQueue.main.async { self.parent.selectionHandler(nil) }
@@ -83,10 +79,6 @@ struct DocumentPickerView: UIViewControllerRepresentable {
             do {
                 try? FileManager.default.removeItem(at: tmp)
                 try FileManager.default.copyItem(at: url, to: tmp)
-                // Debug: Log temp path and size (metadata-only, no full file read)
-                if let size = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                    print("📁 DocumentPicker: Copied file to \(tmp.lastPathComponent), size: \(ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file))")
-                }
                 parent.onPick(tmp)
             } catch {
                 parent.onPick(nil)

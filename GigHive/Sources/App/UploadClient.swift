@@ -67,11 +67,11 @@ final class UploadClient {
         }
     }
     
-    /// Upload with chunked streaming for all files
-    /// Uses memory-efficient chunked approach for better cancellation and consistent UX
-    func uploadWithChunking(_ payload: UploadPayload, progress: ((Int64, Int64) -> Void)? = nil) async throws -> (status: Int, data: Data, requestURL: URL) {
+    /// Upload with MultipartInputStream streaming for all files
+    /// Uses memory-efficient streaming approach with custom InputStream for better cancellation and consistent UX
+    func uploadWithMultipartInputStream(_ payload: UploadPayload, progress: ((Int64, Int64) -> Void)? = nil) async throws -> (status: Int, data: Data, requestURL: URL) {
         
-        // Use chunked upload for ALL files for better cancellation and consistent UX
+        // Use MultipartInputStream streaming for ALL files for better cancellation and consistent UX
         return try await uploadWithTUS(payload: payload, progress: progress)
     }
     

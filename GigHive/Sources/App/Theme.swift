@@ -68,6 +68,129 @@ extension View {
     }
 }
 
+// Custom TextField wrapper that disables input accessory to prevent Auto Layout warnings
+struct NoAccessoryTextField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalizationType: UITextAutocapitalizationType = .none
+    var autocorrectionType: UITextAutocorrectionType = .no
+    var font: UIFont = .systemFont(ofSize: 13)
+    var textColor: UIColor = UIColor(red: 0xe9/255, green: 0xee/255, blue: 0xf7/255, alpha: 1.0)
+    var tintColor: UIColor = .green
+    
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        textField.placeholder = placeholder
+        textField.keyboardType = keyboardType
+        textField.autocapitalizationType = autocapitalizationType
+        textField.autocorrectionType = autocorrectionType
+        textField.font = font
+        textField.textColor = textColor
+        textField.tintColor = tintColor
+        textField.backgroundColor = .clear
+        textField.borderStyle = .none
+        
+        // Disable input accessory view to prevent Auto Layout warnings
+        textField.inputAssistantItem.leadingBarButtonGroups = []
+        textField.inputAssistantItem.trailingBarButtonGroups = []
+        
+        return textField
+    }
+    
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        uiView.text = text
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: NoAccessoryTextField
+        
+        init(_ parent: NoAccessoryTextField) {
+            self.parent = parent
+        }
+        
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            parent.text = textField.text ?? ""
+        }
+        
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            if let text = textField.text,
+               let textRange = Range(range, in: text) {
+                let updatedText = text.replacingCharacters(in: textRange, with: string)
+                parent.text = updatedText
+            }
+            return true
+        }
+    }
+}
+
+// Custom SecureField wrapper that disables input accessory to prevent Auto Layout warnings
+struct NoAccessorySecureField: UIViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var keyboardType: UIKeyboardType = .default
+    var autocapitalizationType: UITextAutocapitalizationType = .none
+    var autocorrectionType: UITextAutocorrectionType = .no
+    var font: UIFont = .systemFont(ofSize: 13)
+    var textColor: UIColor = UIColor(red: 0xe9/255, green: 0xee/255, blue: 0xf7/255, alpha: 1.0)
+    var tintColor: UIColor = .green
+    
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        textField.placeholder = placeholder
+        textField.keyboardType = keyboardType
+        textField.autocapitalizationType = autocapitalizationType
+        textField.autocorrectionType = autocorrectionType
+        textField.font = font
+        textField.textColor = textColor
+        textField.tintColor = tintColor
+        textField.backgroundColor = .clear
+        textField.borderStyle = .none
+        textField.isSecureTextEntry = true
+        
+        // Disable input accessory view to prevent Auto Layout warnings
+        textField.inputAssistantItem.leadingBarButtonGroups = []
+        textField.inputAssistantItem.trailingBarButtonGroups = []
+        
+        return textField
+    }
+    
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        uiView.text = text
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UITextFieldDelegate {
+        var parent: NoAccessorySecureField
+        
+        init(_ parent: NoAccessorySecureField) {
+            self.parent = parent
+        }
+        
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            parent.text = textField.text ?? ""
+        }
+        
+        func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+            if let text = textField.text,
+               let textRange = Range(range, in: text) {
+                let updatedText = text.replacingCharacters(in: textRange, with: string)
+                parent.text = updatedText
+            }
+            return true
+        }
+    }
+}
+
 struct GHCard<Content: View>: View {
     let content: () -> Content
     let pad: CGFloat

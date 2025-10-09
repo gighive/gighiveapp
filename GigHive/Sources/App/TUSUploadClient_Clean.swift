@@ -21,6 +21,9 @@ final class TUSUploadClient_Clean {
         progressHandler: @escaping (Int64, Int64) -> Void,
         completion: @escaping (Result<(status: Int, data: Data, requestURL: URL), Error>) -> Void
     ) {
+        NSLog("🔵 TUSUploadClient_Clean.uploadFile() called for: %@", payload.fileURL.lastPathComponent)
+        print("🔵 TUSUploadClient_Clean.uploadFile() called for: \(payload.fileURL.lastPathComponent)")
+        
         // Use the new NetworkProgressUploadClient for real network progress tracking
         let networkClient = NetworkProgressUploadClient(
             baseURL: baseURL,
@@ -29,11 +32,15 @@ final class TUSUploadClient_Clean {
         )
         self.networkClient = networkClient  // Store reference for cancellation
         
+        NSLog("🔵 Calling NetworkProgressUploadClient.uploadFile()...")
+        print("🔵 Calling NetworkProgressUploadClient.uploadFile()...")
         networkClient.uploadFile(
             payload: payload,
             progressHandler: progressHandler,
             completion: completion
         )
+        NSLog("🔵 NetworkProgressUploadClient.uploadFile() call completed (async)")
+        print("🔵 NetworkProgressUploadClient.uploadFile() call completed (async)")
     }
     
     /// Cancel the current upload

@@ -52,6 +52,7 @@ struct UploadView: View {
     @State private var allowInsecureTLS = false
     @State private var isLoadingMedia = false
     @State private var loadedFileSize: String? = nil
+    @State private var loadedFileSizeBytes: Int? = nil  // Store raw byte count for validation
     // Ensure loading text is visible for at least a minimum duration
     @State private var mediaLoadingStartedAt: Date? = nil
     @State private var lastProgressBucket: Int = 0
@@ -78,45 +79,48 @@ struct UploadView: View {
                         GHLabel(text: "SERVER")
 
                         LabeledField("") {
-                            NoAccessoryTextField(
-                                text: $serverURLString,
-                                placeholder: "https://example.com",
-                                keyboardType: .URL,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
+                            TextField("https://example.com", text: $serverURLString)
+                                .keyboardType(.URL)
+                                .ghNoAutocapitalization()
+                                .disableAutocorrection(true)
+                                .font(.footnote)
+                                .padding(.vertical, 2)
+                                .padding(.horizontal, 8)
+                                .ghForeground(GHTheme.text)
+                                .ghTint(GHTheme.caret)
+                                .ghBackgroundMaterial()
+                                .cornerRadius(6)
+                                .frame(height: 24)
                         }
 
                         LabeledField("Username *") {
-                            NoAccessoryTextField(
-                                text: $username,
-                                placeholder: "admin/uploader username",
-                                keyboardType: .default,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
+                            TextField("admin/uploader username", text: $username)
+                                .keyboardType(.default)
+                                .ghNoAutocapitalization()
+                                .disableAutocorrection(true)
+                                .font(.footnote)
+                                .padding(.vertical, 3)
+                                .padding(.horizontal, 8)
+                                .ghForeground(GHTheme.text)
+                                .ghTint(GHTheme.caret)
+                                .ghBackgroundMaterial()
+                                .cornerRadius(6)
+                                .frame(height: 28)
                         }
 
                         LabeledField("Password *") {
-                            NoAccessorySecureField(
-                                text: $password,
-                                placeholder: "password",
-                                keyboardType: .default,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
+                            SecureField("password", text: $password)
+                                .keyboardType(.default)
+                                .ghNoAutocapitalization()
+                                .disableAutocorrection(true)
+                                .font(.footnote)
+                                .padding(.vertical, 3)
+                                .padding(.horizontal, 8)
+                                .ghForeground(GHTheme.text)
+                                .ghTint(GHTheme.caret)
+                                .ghBackgroundMaterial()
+                                .cornerRadius(6)
+                                .frame(height: 28)
                         }
 
                         // Default event type removed from SERVER: we persist the META selection instead.
@@ -128,15 +132,15 @@ struct UploadView: View {
 
                         LabeledField("Media file (audio/video) *") {
                             Menu {
-                                Button("From Files", action: { 
-                                    loadedFileSize = nil  // Clear previous file size
-                                    isLoadingMedia = true  // Show loading immediately when dropdown option is touched
-                                    showFilesPicker = true 
-                                })
                                 Button("From Photos", action: { 
                                     loadedFileSize = nil  // Clear previous file size
                                     isLoadingMedia = true  // Show loading immediately when dropdown option is touched
                                     showPhotosPicker = true 
+                                })
+                                Button("From Files", action: { 
+                                    loadedFileSize = nil  // Clear previous file size
+                                    isLoadingMedia = true  // Show loading immediately when dropdown option is touched
+                                    showFilesPicker = true 
                                 })
                             } label: {
                                 HStack {
@@ -154,25 +158,13 @@ struct UploadView: View {
                                 .cornerRadius(10)
                             }
                             if isLoadingMedia || (fileURL != nil && loadedFileSize == nil) {
-                                HStack(spacing: 8) {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Preparing video from Photos...")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                            .bold()
-                                        Text("This may take a few minutes for large videos. iOS requires copying the file for security.")
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding(.vertical, 4)
+                                Text("Loading media…please wait until media is loaded into iOS memory and you see it's file size.")
+                                    .font(.caption2)
+                                    .foregroundColor(.red)
                             } else if let fileSize = loadedFileSize {
                                 Text("File size: \(fileSize)")
                                     .font(.caption2)
-                                    .foregroundColor(.green)
-                                    .bold()
+                                    .foregroundColor(.red)
                             }
                         }
 
@@ -185,17 +177,18 @@ struct UploadView: View {
                         }
 
                         LabeledField("Band or wedding party name *") {
-                            NoAccessoryTextField(
-                                text: $orgName,
-                                placeholder: "",
-                                keyboardType: .default,
-                                autocapitalizationType: .words,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
+                            TextField("", text: $orgName)
+                                .keyboardType(.default)
+                                .ghWordsAutocap()
+                                .disableAutocorrection(true)
+                                .font(.footnote)
+                                .padding(.vertical, 2)
+                                .padding(.horizontal, 8)
+                                .ghForeground(GHTheme.text)
+                                .ghTint(GHTheme.caret)
+                                .ghBackgroundMaterial()
+                                .cornerRadius(6)
+                                .frame(height: 24)
                         }
 
                         LabeledField("Event type *") {
@@ -207,17 +200,17 @@ struct UploadView: View {
                         }
 
                         LabeledField("Song title or wedding table / identifier *") {
-                            NoAccessoryTextField(
-                                text: $label,
-                                placeholder: "",
-                                keyboardType: .default,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
+                            TextField("", text: $label)
+                                .keyboardType(.default)
+                                .disableAutocorrection(true)
+                                .font(.footnote)
+                                .padding(.vertical, 2)
+                                .padding(.horizontal, 8)
+                                .ghForeground(GHTheme.text)
+                                .ghTint(GHTheme.caret)
+                                .ghBackgroundMaterial()
+                                .cornerRadius(6)
+                                .frame(height: 24)
                         }
 
                         Toggle(isOn: $autogenLabel) {
@@ -271,14 +264,10 @@ struct UploadView: View {
 
 
                         if let url = successURL {
-                            Button(action: {
-                                openURL(url)
-                            }) {
-                                Text("View in Database")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(GHButtonStyle(color: .green))
-                            .padding(.top, 8)
+                            Link("View in database", destination: url)
+                                .font(.caption)
+                                .ghForeground(GHTheme.accent)
+                                .padding(.top, 2)
                         }
 
                         Toggle(isOn: $allowInsecureTLS) {
@@ -320,28 +309,53 @@ struct UploadView: View {
                     self.loadedFileSize = nil
                     self.fileURL = url
                     self.showPhotosPicker = false
-                    debugLog.append("reading file metadata...")
+                    debugLog.append("loading file into memory...")
 
                     // Compute file size and only clear loading after minimum visible duration
                     DispatchQueue.global(qos: .userInitiated).async {
                         debugLog.append("calculating file size...")
                         let minVisible: TimeInterval = 1.0
+                        let maxFileSize: Int64 = 4294967296 // 4GB in bytes
+                        
+                        var fileSizeBytes: Int = 0
                         let sizeText: String = {
                             do {
                                 let bytes = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                                fileSizeBytes = bytes
                                 return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
                             } catch {
                                 return "unknown"
                             }
                         }()
+                        
+                        // Check if file exceeds 4GB limit
+                        if fileSizeBytes > maxFileSize {
+                            let started = self.mediaLoadingStartedAt ?? Date()
+                            let elapsed = Date().timeIntervalSince(started)
+                            let remaining = max(0, minVisible - elapsed)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
+                                self.isLoadingMedia = false
+                                self.mediaLoadingStartedAt = nil
+                                self.fileURL = nil
+                                self.loadedFileSize = nil
+                                self.loadedFileSizeBytes = nil
+                                self.alertTitle = "File Too Large"
+                                self.alertMessage = "The selected file (\(sizeText)) exceeds the 4GB limit. Please select a smaller file."
+                                self.showResultAlert = true
+                                debugLog.append("file too large: \(sizeText)")
+                            }
+                            return
+                        }
+                        
                         let started = self.mediaLoadingStartedAt ?? Date()
                         let elapsed = Date().timeIntervalSince(started)
                         let remaining = max(0, minVisible - elapsed)
                         DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
                             self.loadedFileSize = sizeText
+                            self.loadedFileSizeBytes = fileSizeBytes
                             self.isLoadingMedia = false
                             self.mediaLoadingStartedAt = nil
-                            debugLog.append("file metadata loaded (\(sizeText))")
+                            debugLog.append("file loaded successfully (\(sizeText))")
                             debugLog.append("picked from Photos")
                         }
                     }
@@ -376,28 +390,53 @@ struct UploadView: View {
                         self.loadedFileSize = nil
                         self.fileURL = url
                         self.showFilesPicker = false
-                        debugLog.append("reading file metadata...")
+                        debugLog.append("loading file into memory...")
 
                         // Compute file size and only clear loading after minimum visible duration
                         DispatchQueue.global(qos: .userInitiated).async {
                             debugLog.append("calculating file size...")
                             let minVisible: TimeInterval = 1.0
+                            let maxFileSize: Int64 = 4294967296 // 4GB in bytes
+                            
+                            var fileSizeBytes: Int = 0
                             let sizeText: String = {
                                 do {
                                     let bytes = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                                    fileSizeBytes = bytes
                                     return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
                                 } catch {
                                     return "unknown"
                                 }
                             }()
+                            
+                            // Check if file exceeds 4GB limit
+                            if fileSizeBytes > maxFileSize {
+                                let started = self.mediaLoadingStartedAt ?? Date()
+                                let elapsed = Date().timeIntervalSince(started)
+                                let remaining = max(0, minVisible - elapsed)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
+                                    self.isLoadingMedia = false
+                                    self.mediaLoadingStartedAt = nil
+                                    self.fileURL = nil
+                                    self.loadedFileSize = nil
+                                    self.loadedFileSizeBytes = nil
+                                    self.alertTitle = "File Too Large"
+                                    self.alertMessage = "The selected file (\(sizeText)) exceeds the 4GB limit. Please select a smaller file."
+                                    self.showResultAlert = true
+                                    debugLog.append("file too large: \(sizeText)")
+                                }
+                                return
+                            }
+                            
                             let started = self.mediaLoadingStartedAt ?? Date()
                             let elapsed = Date().timeIntervalSince(started)
                             let remaining = max(0, minVisible - elapsed)
                             DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
                                 self.loadedFileSize = sizeText
+                                self.loadedFileSizeBytes = fileSizeBytes
                                 self.isLoadingMedia = false
                                 self.mediaLoadingStartedAt = nil
-                                debugLog.append("file metadata loaded (\(sizeText))")
+                                debugLog.append("file loaded successfully (\(sizeText))")
                                 debugLog.append("picked from Files")
                             }
                         }
@@ -485,6 +524,16 @@ struct UploadView: View {
             let fileSize = try fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
             let fileSizeText = ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
             debugLog.append("file size: \(fileSizeText)")
+            
+            // Check if file exceeds 4GB limit (safety check)
+            let maxFileSize: Int64 = 4294967296 // 4GB in bytes
+            if fileSize > maxFileSize {
+                debugLog.append("file too large: \(fileSizeText)")
+                alertTitle = "File Too Large"
+                alertMessage = "The selected file (\(fileSizeText)) exceeds the 4GB limit. Please select a smaller file."
+                showResultAlert = true
+                return
+            }
         } catch {
             debugLog.append("file size: unknown")
         }
@@ -525,23 +574,15 @@ struct UploadView: View {
                 // Show initial progress to let user know progress tracking is active
                 debugLog.append("0%..")
 
-                let (status, data, requestURL) = try await client.uploadWithMultipartInputStream(payload, progress: { completed, total in
-                    // Special case: -1, -1 means Layer 1 assembly in progress (show dots)
-                    if completed == -1 && total == -1 {
-                        DispatchQueue.main.async {
-                            debugLog.append(".")
-                        }
-                        return
-                    }
-                    
+                let (status, data, requestURL) = try await client.uploadWithChunking(payload, progress: { completed, total in
                     guard total > 0 else { 
                         print("⚠️ Progress callback: total is 0")
                         return 
                     }
                     let percent = Int((Double(completed) / Double(total)) * 100.0)
-                    let bucket = (percent / 5) * 5  // Changed from 10% to 5% increments
+                    let bucket = (percent / 10) * 10
                     print("📈 UploadView Progress: \(completed)/\(total) bytes = \(percent)%, bucket=\(bucket), lastBucket=\(lastProgressBucket)")
-                    if bucket >= 5 && bucket > lastProgressBucket {  // Changed from 10 to 5
+                    if bucket >= 10 && bucket > lastProgressBucket {
                         DispatchQueue.main.async {
                             lastProgressBucket = bucket
                             debugLog.append("\(bucket)%..")
@@ -578,8 +619,8 @@ struct UploadView: View {
                     alertMessage = "401 Unauthorized. Check Basic Auth username/password."
                     failureCount += 1
                 case 413:
-                    alertTitle = "File Too Large"
-                    alertMessage = "413 Payload Too Large.\n\nCloudflare has a 100MB upload limit. Your file exceeds this limit.\n\nSolutions:\n• Use local network (https://gighive)\n• Split file into smaller parts\n• Contact admin to bypass Cloudflare for uploads"
+                    alertTitle = "Too Large"
+                    alertMessage = "413 Payload Too Large. Pick a smaller file or increase server limits."
                     failureCount += 1
                 case 400:
                     alertTitle = "Bad Request"
