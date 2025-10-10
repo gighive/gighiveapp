@@ -711,7 +711,7 @@ struct UploadView: View {
                     failureCount += 1
                 case 413:
                     alertTitle = "File Too Large"
-                    alertMessage = "413 Payload Too Large.\n\nCloudflare has a 100MB upload limit. Your file exceeds this limit.\n\nSolutions:\n• Use local network (https://gighive)\n• Split file into smaller parts\n• Contact admin to bypass Cloudflare for uploads"
+                    alertMessage = "413 Payload Too Large.\n\nYour file exceeds the maximum allowed size of \(AppConstants.MAX_UPLOAD_SIZE_FORMATTED).\n\nPlease select a smaller file or compress the video before uploading."
                     failureCount += 1
                 case 400:
                     alertTitle = "Bad Request"

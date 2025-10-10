@@ -52,7 +52,8 @@ struct PHPickerView: UIViewControllerRepresentable {
                 }
                 
                 print("🚀 [PHPicker] Calling loadFileRepresentation...")
-                let loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
+                let loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, _ in
+                    guard let self = self else { return }
                     print("✅ [PHPicker] loadFileRepresentation completed")
                     
                     // Cleanup progress observation
@@ -106,6 +107,11 @@ struct PHPickerView: UIViewControllerRepresentable {
                 
                 // Observe Progress object for updates
                 print("👀 [PHPicker] Setting up Progress observation...")
+                print("📊 [PHPicker] Progress totalUnitCount: \(loadProgress.totalUnitCount) bytes")
+                if loadProgress.totalUnitCount > 0 {
+                    let sizeStr = ByteCountFormatter.string(fromByteCount: loadProgress.totalUnitCount, countStyle: .file)
+                    print("📊 [PHPicker] File size being copied: \(sizeStr)")
+                }
                 self.progressObservation = loadProgress.observe(\.fractionCompleted, options: [.new]) { progress, change in
                     let fraction = progress.fractionCompleted
                     print("📈 [PHPicker] Progress KVO update: \(Int(fraction * 100))%")
