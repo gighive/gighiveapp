@@ -758,7 +758,12 @@ struct UploadView: View {
                 alertMessage = error.localizedDescription
                 failureCount += 1
             }
-            showResultAlert = true
+            // Hide keyboard before showing alert to prevent it from reappearing
+            hideKeyboard()
+            // Small delay to ensure keyboard is fully dismissed before alert appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                showResultAlert = true
+            }
             onUpload(payload)
         }
     }
