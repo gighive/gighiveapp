@@ -132,8 +132,11 @@ final class NetworkProgressUploadClient: NSObject {
     
     /// Cancel the current upload task
     func cancelUpload() {
+        print("🔴 [NetworkProgressUploadClient] cancelUpload() called")
         currentUploadTask?.cancel()
-        currentUploadTask = nil
+        // DON'T clear currentUploadTask here - the delegate callback needs to fire
+        // to call the completion handler which resumes the continuation
+        print("🔴 [NetworkProgressUploadClient] Cancelled task, waiting for delegate callback")
     }
     
     // MARK: - Helper Methods
@@ -217,6 +220,7 @@ extension NetworkProgressUploadClient: URLSessionTaskDelegate {
             self.responseData = Data()
             self.completion = nil
             self.progressHandler = nil
+            self.currentUploadTask = nil  // Clear task reference after completion
         }
     }
 }

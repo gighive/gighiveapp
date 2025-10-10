@@ -85,31 +85,16 @@ final class UploadClient {
         )
         self.currentTUSClient = tusClient  // Store reference for cancellation
         
-        return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                tusClient.uploadFile(
-                    payload: payload,
-                    progressHandler: { completed, total in
-                        progress?(completed, total)
-                    },
-                    completion: { result in
-                        switch result {
-                        case .success(let response):
-                            print("✅ [uploadWithTUS] Resuming continuation with success: status \(response.status)")
-                            continuation.resume(with: result)
-                        case .failure(let error):
-                            print("❌ [uploadWithTUS] Resuming continuation with error: \(error.localizedDescription)")
-                            continuation.resume(with: result)
-                        }
-                    }
-                )
-            }
-        } onCancel: {
-            // When Swift Task is cancelled, cancel the underlying network upload
-            // This will trigger the completion callback with a cancellation error,
-            // which will properly resume the continuation
-            print("⚠️ [uploadWithTUS] Task cancelled - cancelling network upload")
-            tusClient.cancelUpload()
+        return try await withCheckedThrowingContinuation { continuation in
+            tusClient.uploadFile(
+                payload: payload,
+                progressHandler: { completed, total in
+                    progress?(completed, total)
+                },
+                completion: { result in
+                    continuation.resume(with: result)
+                }
+            )
         }
     }
     
@@ -207,10 +192,7 @@ final class UploadClient {
     
     /// Cancel the current upload
     func cancelCurrentUpload() {
-        print("🔴 [UploadClient] cancelCurrentUpload() called")
         currentTUSClient?.cancelUpload()
-        // DON'T clear currentTUSClient here - it needs to stay alive to fire the completion callback
-        // which will resume the continuation. It will be cleared when the completion fires.
-        print("🔴 [UploadClient] cancelCurrentUpload() completed - currentTUSClient still alive for callback")
+        currentTUSClient = nil
     }
 }

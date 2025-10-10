@@ -319,14 +319,39 @@ struct UploadView: View {
                 // Clear old debug log when selecting new file
                 debugLog = []
 
+                // Show loading immediately upon a valid selection, then dismiss picker
                 if let url = url {
-                    // Don't set isLoadingMedia here - it gets interrupted by picker dismissal
-                    // Instead, set fileURL and let .onChange() handle the loading state
-                    print("📸 [PHPicker] File selected, setting fileURL")
+                    // Mark the start moment and show loading immediately
+                    self.mediaLoadingStartedAt = Date()
+                    self.isLoadingMedia = true
                     self.loadedFileSize = nil
                     self.fileURL = url
                     self.showPhotosPicker = false
-                    debugLog.append("file selected from Photos")
+                    debugLog.append("reading file metadata...")
+
+                    // Compute file size and only clear loading after minimum visible duration
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        debugLog.append("calculating file size...")
+                        let minVisible: TimeInterval = 1.0
+                        let sizeText: String = {
+                            do {
+                                let bytes = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                                return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+                            } catch {
+                                return "unknown"
+                            }
+                        }()
+                        let started = self.mediaLoadingStartedAt ?? Date()
+                        let elapsed = Date().timeIntervalSince(started)
+                        let remaining = max(0, minVisible - elapsed)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
+                            self.loadedFileSize = sizeText
+                            self.isLoadingMedia = false
+                            self.mediaLoadingStartedAt = nil
+                            debugLog.append("file metadata loaded (\(sizeText))")
+                            debugLog.append("picked from Photos")
+                        }
+                    }
                 } else {
                     // User cancelled
                     self.showPhotosPicker = false
@@ -419,56 +444,6 @@ struct UploadView: View {
                 }
             )
             .modifier(PresentationDetentsCompat())
-        }
-        .onChange(of: fileURL) { newURL in
-            // Handle file selection from Photos picker
-            // This runs AFTER picker dismisses, so UI updates work properly
-            guard let newURL = newURL else {
-                // File was cleared
-                print("📸 [onChange(fileURL)] File cleared")
-                return
-            }
-            
-            // Only show loading if we don't have a file size yet
-            // (Files picker is fast and doesn't need progress)
-            guard loadedFileSize == nil else {
-                print("📸 [onChange(fileURL)] File size already loaded, skipping progress")
-                return
-            }
-            
-            print("📸 [onChange(fileURL)] New file selected, starting progress after delay")
-            // Small delay to ensure picker sheet is fully dismissed
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("📸 [onChange(fileURL)] Showing loading indicator")
-                self.isLoadingMedia = true
-                self.mediaLoadingStartedAt = Date()
-                debugLog.append("reading file metadata...")
-                
-                // Compute file size on background thread
-                DispatchQueue.global(qos: .userInitiated).async {
-                    debugLog.append("calculating file size...")
-                    let minVisible: TimeInterval = 1.0
-                    let sizeText: String = {
-                        do {
-                            let bytes = try newURL.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-                            return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-                        } catch {
-                            return "unknown"
-                        }
-                    }()
-                    let started = self.mediaLoadingStartedAt ?? Date()
-                    let elapsed = Date().timeIntervalSince(started)
-                    let remaining = max(0, minVisible - elapsed)
-                    print("📸 [Background] File size calculated: \(sizeText), elapsed: \(elapsed)s, remaining: \(remaining)s")
-                    DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
-                        print("📸 [Background] Updating UI with file size")
-                        self.loadedFileSize = sizeText
-                        self.isLoadingMedia = false
-                        self.mediaLoadingStartedAt = nil
-                        debugLog.append("file metadata loaded (\(sizeText))")
-                    }
-                }
-            }
         }
         .onChange(of: pendingFileSizeError) { error in
             // Trigger alert when file size error is set, with delay to allow picker to fully dismiss

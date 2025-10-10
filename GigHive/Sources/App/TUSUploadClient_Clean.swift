@@ -45,7 +45,10 @@ final class TUSUploadClient_Clean {
     
     /// Cancel the current upload
     func cancelUpload() {
+        print("🔴 [TUSUploadClient_Clean] cancelUpload() called")
         networkClient?.cancelUpload()
-        networkClient = nil
+        // DON'T clear networkClient here - it needs to stay alive to fire the completion callback
+        // which will resume the continuation. It will be cleared when the completion fires.
+        print("🔴 [TUSUploadClient_Clean] cancelUpload() completed - networkClient still alive for callback")
     }
 }
