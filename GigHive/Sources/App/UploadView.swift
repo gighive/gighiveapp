@@ -142,7 +142,7 @@ struct UploadView: View {
                                 })
                                 Button("From Photos", action: { 
                                     loadedFileSize = nil  // Clear previous file size
-                                    isLoadingMedia = true  // Show loading immediately when dropdown option is touched
+                                    // Don't set isLoadingMedia here - it will be set when copy starts via onCopyStarted callback
                                     showPhotosPicker = true 
                                 })
                             } label: {
@@ -164,6 +164,7 @@ struct UploadView: View {
                                 HStack(spacing: 8) {
                                     ProgressView()
                                         .scaleEffect(0.8)
+                                        .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.7, green: 0.6, blue: 0.9)))
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text("Preparing video from Photos...")
                                             .font(.caption)
@@ -171,7 +172,7 @@ struct UploadView: View {
                                             .bold()
                                         Text("This may take a few minutes for large videos. iOS requires copying the file for security.")
                                             .font(.caption2)
-                                            .foregroundColor(.secondary)
+                                            .foregroundColor(.orange.opacity(0.8))
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -347,6 +348,13 @@ struct UploadView: View {
                     self.pendingFileSizeError = FileSizeError(fileSize: fileSize, maxSize: maxSize)
                     print("🚫 [PHPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
                 }
+            }, onCopyStarted: {
+                // File copy from Photos has started - show progress immediately
+                print("📸 [PHPicker] onCopyStarted - showing progress indicator")
+                self.isLoadingMedia = true
+                self.mediaLoadingStartedAt = Date()
+                self.loadedFileSize = nil
+                debugLog.append("copying file from Photos...")
             })
             .modifier(PresentationDetentsCompat())
         }

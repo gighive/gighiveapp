@@ -18,7 +18,6 @@
 		B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */; };
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
-		CA26C73C756BCD21A0A2904A /* TUSUploadClient_Clean.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A39673524D0344C70B16C7 /* TUSUploadClient_Clean.swift */; };
 		D80F96D12E95E3F700A5703D /* MultipartInputStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80F96D02E95E3F700A5703D /* MultipartInputStream.swift */; };
 		D80F96D32E98122C00A5703D /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80F96D22E98122C00A5703D /* AppConstants.swift */; };
 /* End PBXBuildFile section */
@@ -46,7 +45,6 @@
 		A489F209BDAB477FEC85E098 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationDetentsCompat.swift; sourceTree = "<group>"; };
 		CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerBridges.swift; sourceTree = "<group>"; };
-		D0A39673524D0344C70B16C7 /* TUSUploadClient_Clean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TUSUploadClient_Clean.swift; sourceTree = "<group>"; };
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		D80F96D02E95E3F700A5703D /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
 		D80F96D22E98122C00A5703D /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
@@ -85,7 +83,6 @@
 				AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */,
 				D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */,
 				04BF8F1B65BA95BB2142AE1C /* Theme.swift */,
-				D0A39673524D0344C70B16C7 /* TUSUploadClient_Clean.swift */,
 				2782A5D354995ABF69E0D106 /* UploadClient.swift */,
 				89281475A43AA7EDF94EE3D1 /* UploadView.swift */,
 			);
@@ -200,7 +197,6 @@
 				39072A6D72CD83CA7DF794CF /* PickerBridges.swift in Sources */,
 				49009D21E3342CF9C8944C85 /* PresentationDetentsCompat.swift in Sources */,
 				8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */,
-				CA26C73C756BCD21A0A2904A /* TUSUploadClient_Clean.swift in Sources */,
 				4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */,
 				D80F96D32E98122C00A5703D /* AppConstants.swift in Sources */,
 				9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */,

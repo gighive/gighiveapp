@@ -11,7 +11,7 @@ final class NetworkProgressUploadClient: NSObject {
     
     // Progress tracking
     private var progressHandler: ((Int64, Int64) -> Void)?
-    private var continuation: CheckedContinuation<(status: Int, data: Data, requestURL: URL), Error>?
+    private var completion: ((Result<(status: Int, data: Data, requestURL: URL), Error>) -> Void)?
     private var currentUploadTask: URLSessionUploadTask?
     private var responseData = Data()  // Accumulate response data
     private var currentInputStream: MultipartInputStream?  // Store stream for delegate
@@ -42,92 +42,90 @@ final class NetworkProgressUploadClient: NSObject {
     /// Streams multipart body directly from file without creating temp files
     func uploadFile(
         payload: UploadPayload,
-        progressHandler: @escaping (Int64, Int64) -> Void
-    ) async throws -> (status: Int, data: Data, requestURL: URL) {
+        progressHandler: @escaping (Int64, Int64) -> Void,
+        completion: @escaping (Result<(status: Int, data: Data, requestURL: URL), Error>) -> Void
+    ) {
         self.progressHandler = progressHandler
+        self.completion = completion
         self.responseData = Data()  // Reset response data accumulator
         
-        return try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
-            
-            Task {
-                do {
-                    print("🚀 Direct streaming upload starting for: \(payload.fileURL.lastPathComponent)")
-                    
-                    // Build URL
-                    let apiURL = baseURL
-                        .appendingPathComponent("api")
-                        .appendingPathComponent("uploads.php")
-                    var components = URLComponents(url: apiURL, resolvingAgainstBaseURL: false)
-                    components?.queryItems = [URLQueryItem(name: "ui", value: "json")]
-                    guard let finalURL = components?.url else {
-                        continuation.resume(throwing: URLError(.badURL))
-                        return
-                    }
-                    
-                    var request = URLRequest(url: finalURL)
-                    request.httpMethod = "POST"
-                    
-                    // Add basic auth
-                    if let auth = basicAuth {
-                        let credentials = "\(auth.user):\(auth.pass)"
-                        let encodedCredentials = Data(credentials.utf8).base64EncodedString()
-                        request.setValue("Basic \(encodedCredentials)", forHTTPHeaderField: "Authorization")
-                    }
-                    
-                    request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
-                    
-                    // Create multipart stream
-                    let boundary = "Boundary-\(UUID().uuidString)"
-                    request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-                    
-                    // Prepare form fields
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateFormat = "yyyy-MM-dd"
-                    let formFields = [
-                        ("event_date", dateFormatter.string(from: payload.eventDate)),
-                        ("org_name", payload.orgName),
-                        ("event_type", payload.eventType),
-                        ("label", payload.label ?? "")
-                    ]
-                    
-                    let fileName = payload.fileURL.lastPathComponent
-                    let mimeType = mimeType(for: fileName)
-                    
-                    print("📤 Creating multipart stream...")
-                    let stream = try MultipartInputStream(
-                        fileURL: payload.fileURL,
-                        boundary: boundary,
-                        formFields: formFields,
-                        fileFieldName: "file",
-                        fileName: fileName,
-                        mimeType: mimeType
-                    )
-                    
-                    // Set Content-Length
-                    let contentLength = stream.contentLength()
-                    request.setValue(String(contentLength), forHTTPHeaderField: "Content-Length")
-                    print("🔍 Content-Length: \(ByteCountFormatter.string(fromByteCount: contentLength, countStyle: .file))")
-                    
-                    // Store stream for delegate to provide
-                    self.currentInputStream = stream
-                    
-                    print("📤 Starting direct stream upload...")
-                    let task = session.uploadTask(withStreamedRequest: request)
-                    self.currentUploadTask = task  // Store reference for cancellation
-                    
-                    print("🔍 Task created, state: \(task.state.rawValue)")
-                    task.resume()
-                    print("✅ Upload task resumed, state: \(task.state.rawValue)")
-                    print("✅ Waiting for progress callbacks and completion...")
-                    
-                    // Note: Completion will be handled by URLSessionTaskDelegate.didCompleteWithError
-                    // Response data accumulated in URLSessionDataDelegate.didReceive
-                    
-                } catch {
-                    print("❌ Upload error: \(error.localizedDescription)")
-                    continuation.resume(throwing: error)
+        Task {
+            do {
+                print("🚀 Direct streaming upload starting for: \(payload.fileURL.lastPathComponent)")
+                
+                // Build URL
+                let apiURL = baseURL
+                    .appendingPathComponent("api")
+                    .appendingPathComponent("uploads.php")
+                var components = URLComponents(url: apiURL, resolvingAgainstBaseURL: false)
+                components?.queryItems = [URLQueryItem(name: "ui", value: "json")]
+                guard let finalURL = components?.url else { 
+                    completion(.failure(URLError(.badURL)))
+                    return
                 }
+                
+                var request = URLRequest(url: finalURL)
+                request.httpMethod = "POST"
+                
+                // Add basic auth
+                if let auth = basicAuth {
+                    let credentials = "\(auth.user):\(auth.pass)"
+                    let encodedCredentials = Data(credentials.utf8).base64EncodedString()
+                    request.setValue("Basic \(encodedCredentials)", forHTTPHeaderField: "Authorization")
+                }
+                
+                request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
+                
+                // Create multipart stream
+                let boundary = "Boundary-\(UUID().uuidString)"
+                request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                
+                // Prepare form fields
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd"
+                let formFields = [
+                    ("event_date", dateFormatter.string(from: payload.eventDate)),
+                    ("org_name", payload.orgName),
+                    ("event_type", payload.eventType),
+                    ("label", payload.label ?? "")
+                ]
+                
+                let fileName = payload.fileURL.lastPathComponent
+                let mimeType = mimeType(for: fileName)
+                
+                print("📤 Creating multipart stream...")
+                let stream = try MultipartInputStream(
+                    fileURL: payload.fileURL,
+                    boundary: boundary,
+                    formFields: formFields,
+                    fileFieldName: "file",
+                    fileName: fileName,
+                    mimeType: mimeType
+                )
+                
+                // Set Content-Length
+                let contentLength = stream.contentLength()
+                request.setValue(String(contentLength), forHTTPHeaderField: "Content-Length")
+                print("🔍 Content-Length: \(ByteCountFormatter.string(fromByteCount: contentLength, countStyle: .file))")
+                
+                // Store stream for delegate to provide
+                self.currentInputStream = stream
+                
+                print("📤 Starting direct stream upload...")
+                let task = session.uploadTask(withStreamedRequest: request)
+                self.currentUploadTask = task  // Store reference for cancellation
+                
+                print("🔍 Task created, state: \(task.state.rawValue)")
+                task.resume()
+                print("✅ Upload task resumed, state: \(task.state.rawValue)")
+                print("✅ Waiting for progress callbacks and completion...")
+                
+                // Note: Completion will be handled by URLSessionTaskDelegate.didCompleteWithError
+                // Response data accumulated in URLSessionDataDelegate.didReceive
+                
+            } catch {
+                print("❌ Upload error: \(error.localizedDescription)")
+                completion(.failure(error))
             }
         }
     }
@@ -206,7 +204,7 @@ extension NetworkProgressUploadClient: URLSessionTaskDelegate {
                         print("❌ Response body: \(responseText)")
                     }
                 }
-                self.continuation?.resume(throwing: error)
+                self.completion?(.failure(error))
             } else {
                 // Task completed successfully - return accumulated response data
                 let status = (task.response as? HTTPURLResponse)?.statusCode ?? -1
@@ -215,12 +213,12 @@ extension NetworkProgressUploadClient: URLSessionTaskDelegate {
                 if let responseText = String(data: self.responseData, encoding: .utf8) {
                     print("✅ Response body: \(responseText)")
                 }
-                self.continuation?.resume(returning: (status: status, data: self.responseData, requestURL: requestURL))
+                self.completion?(.success((status: status, data: self.responseData, requestURL: requestURL)))
             }
             
             // Clear state
             self.responseData = Data()
-            self.continuation = nil
+            self.completion = nil
             self.progressHandler = nil
             self.currentUploadTask = nil  // Clear task reference after completion
         }

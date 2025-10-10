@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct PHPickerView: UIViewControllerRepresentable {
     var selectionHandler: (URL?) -> Void
     var onFileTooLarge: ((String, String) -> Void)? = nil  // (fileSize, maxSize) -> Void
+    var onCopyStarted: (() -> Void)? = nil  // Called when file copy from Photos begins
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -28,6 +29,10 @@ struct PHPickerView: UIViewControllerRepresentable {
             guard let provider = results.first?.itemProvider else { parent.selectionHandler(nil); return }
             let typeId = UTType.movie.identifier
             if provider.hasItemConformingToTypeIdentifier(typeId) {
+                // Notify that copy operation is starting
+                DispatchQueue.main.async {
+                    self.parent.onCopyStarted?()
+                }
                 provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
                     guard let url = url else {
                         DispatchQueue.main.async { self.parent.selectionHandler(nil) }

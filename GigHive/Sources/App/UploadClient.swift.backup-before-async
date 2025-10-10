@@ -70,6 +70,13 @@ final class UploadClient {
     /// Upload with MultipartInputStream streaming for all files
     /// Uses memory-efficient streaming approach with custom InputStream for better cancellation and consistent UX
     func uploadWithMultipartInputStream(_ payload: UploadPayload, progress: ((Int64, Int64) -> Void)? = nil) async throws -> (status: Int, data: Data, requestURL: URL) {
+        
+        // Use MultipartInputStream streaming for ALL files for better cancellation and consistent UX
+        return try await uploadWithCallbackBridge(payload: payload, progress: progress)
+    }
+    
+    /// Bridge callback-based upload to async/await with cancellation handling
+    private func uploadWithCallbackBridge(payload: UploadPayload, progress: ((Int64, Int64) -> Void)? = nil) async throws -> (status: Int, data: Data, requestURL: URL) {
         // Create NetworkProgressUploadClient directly for real network progress tracking
         let networkClient = NetworkProgressUploadClient(
             baseURL: baseURL,
@@ -79,15 +86,29 @@ final class UploadClient {
         self.currentNetworkClient = networkClient  // Store reference for cancellation
         
         return try await withTaskCancellationHandler {
-            try await networkClient.uploadFile(
-                payload: payload,
-                progressHandler: { completed, total in
-                    progress?(completed, total)
-                }
-            )
+            try await withCheckedThrowingContinuation { continuation in
+                networkClient.uploadFile(
+                    payload: payload,
+                    progressHandler: { completed, total in
+                        progress?(completed, total)
+                    },
+                    completion: { result in
+                        switch result {
+                        case .success(let response):
+                            print("✅ [uploadWithCallbackBridge] Resuming continuation with success: status \(response.status)")
+                            continuation.resume(with: result)
+                        case .failure(let error):
+                            print("❌ [uploadWithCallbackBridge] Resuming continuation with error: \(error.localizedDescription)")
+                            continuation.resume(with: result)
+                        }
+                    }
+                )
+            }
         } onCancel: {
             // When Swift Task is cancelled, cancel the underlying network upload
-            print("⚠️ [uploadWithMultipartInputStream] Task cancelled - cancelling network upload")
+            // This will trigger the completion callback with a cancellation error,
+            // which will properly resume the continuation
+            print("⚠️ [uploadWithCallbackBridge] Task cancelled - cancelling network upload")
             networkClient.cancelUpload()
         }
     }
