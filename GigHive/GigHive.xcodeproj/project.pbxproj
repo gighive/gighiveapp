@@ -14,7 +14,6 @@
 		57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */; };
 		62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89281475A43AA7EDF94EE3D1 /* UploadView.swift */; };
 		8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */; };
-		97B800A112CFC24A7174B7CD /* UploadFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDEEFDD52379BF2AE1CF64C /* UploadFormView.swift */; };
 		9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782A5D354995ABF69E0D106 /* UploadClient.swift */; };
 		B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */; };
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
@@ -41,7 +40,6 @@
 		4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		593FA484CF10D70E6F624D69 /* GigHiveShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GigHiveShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProgressUploadClient.swift; sourceTree = "<group>"; };
-		6FDEEFDD52379BF2AE1CF64C /* UploadFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadFormView.swift; sourceTree = "<group>"; };
 		7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GigHiveApp.swift; sourceTree = "<group>"; };
 		89281475A43AA7EDF94EE3D1 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
 		8BB812D531E316E19AC8653E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -89,7 +87,6 @@
 				04BF8F1B65BA95BB2142AE1C /* Theme.swift */,
 				D0A39673524D0344C70B16C7 /* TUSUploadClient_Clean.swift */,
 				2782A5D354995ABF69E0D106 /* UploadClient.swift */,
-				6FDEEFDD52379BF2AE1CF64C /* UploadFormView.swift */,
 				89281475A43AA7EDF94EE3D1 /* UploadView.swift */,
 			);
 			name = App;
@@ -207,7 +204,6 @@
 				4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */,
 				D80F96D32E98122C00A5703D /* AppConstants.swift in Sources */,
 				9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */,
-				97B800A112CFC24A7174B7CD /* UploadFormView.swift in Sources */,
 				D80F96D12E95E3F700A5703D /* MultipartInputStream.swift in Sources */,
 				62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */,
 			);
