@@ -24,44 +24,17 @@ struct PHPickerView: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, PHPickerViewControllerDelegate {
         let parent: PHPickerView
-        private var progressObservation: NSKeyValueObservation?
-        private var progressTimer: Timer?
-        
         init(_ parent: PHPickerView) { self.parent = parent }
-        
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
             guard let provider = results.first?.itemProvider else { parent.selectionHandler(nil); return }
             let typeId = UTType.movie.identifier
             if provider.hasItemConformingToTypeIdentifier(typeId) {
-                print("📊 [PHPicker] Getting file size from metadata...")
-                
-                // Try to get expected file size from metadata
-                var expectedSize: Int64 = 0
-                provider.loadItem(forTypeIdentifier: typeId, options: nil) { item, error in
-                    if let url = item as? URL {
-                        expectedSize = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-                        print("📊 [PHPicker] Expected file size: \(ByteCountFormatter.string(fromByteCount: expectedSize, countStyle: .file))")
-                    }
-                }
-                
                 // Notify that copy operation is starting
                 DispatchQueue.main.async {
-                    print("🚀 [PHPicker] Copy operation starting, showing progress indicator")
                     self.parent.onCopyStarted?()
                 }
-                
-                print("🚀 [PHPicker] Calling loadFileRepresentation...")
-                let loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
-                    print("✅ [PHPicker] loadFileRepresentation completed")
-                    
-                    // Cleanup progress observation
-                    self.progressObservation?.invalidate()
-                    self.progressObservation = nil
-                    self.progressTimer?.invalidate()
-                    self.progressTimer = nil
-                    print("🧹 [PHPicker] Cleaned up progress observers")
-                    
+                provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
                     guard let url = url else {
                         DispatchQueue.main.async { self.parent.selectionHandler(nil) }
                         return
@@ -73,13 +46,30 @@ struct PHPickerView: UIViewControllerRepresentable {
                         // Remove if exists
                         try? FileManager.default.removeItem(at: tmp)
                         
-                        print("📋 [PHPicker] Copying to persistent temp location...")
+                        // Get source file size for progress tracking
+                        let sourceSize = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+                        
+                        // Start progress monitoring on background thread
+                        var progressTimer: Timer?
+                        if sourceSize > 0 && self.parent.onCopyProgress != nil {
+                            DispatchQueue.main.async {
+                                progressTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { timer in
+                                    if let currentSize = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                                        let progress = min(Double(currentSize) / Double(sourceSize), 0.99)
+                                        self.parent.onCopyProgress?(progress)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Perform the actual copy
                         try FileManager.default.copyItem(at: url, to: tmp)
-                        print("✅ [PHPicker] Copy to temp complete")
+                        
+                        // Stop progress timer
+                        progressTimer?.invalidate()
                         
                         // Set progress to 100%
                         DispatchQueue.main.async {
-                            print("💯 [PHPicker] Setting progress to 100%")
                             self.parent.onCopyProgress?(1.0)
                         }
                         // Debug: Log temp path and size (metadata-only, no full file read)
@@ -101,30 +91,6 @@ struct PHPickerView: UIViewControllerRepresentable {
                         DispatchQueue.main.async { self.parent.selectionHandler(tmp) }
                     } catch {
                         DispatchQueue.main.async { self.parent.selectionHandler(nil) }
-                    }
-                }
-                
-                // Observe Progress object for updates
-                print("👀 [PHPicker] Setting up Progress observation...")
-                self.progressObservation = loadProgress.observe(\.fractionCompleted, options: [.new]) { progress, change in
-                    let fraction = progress.fractionCompleted
-                    print("📈 [PHPicker] Progress KVO update: \(Int(fraction * 100))%")
-                    DispatchQueue.main.async {
-                        self.parent.onCopyProgress?(fraction)
-                    }
-                }
-                
-                // Fallback: Start polling timer in case Progress object doesn't update
-                DispatchQueue.main.async {
-                    print("⏱️ [PHPicker] Starting fallback polling timer (0.1s interval)...")
-                    var lastReportedProgress: Double = 0.0
-                    self.progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
-                        let currentProgress = loadProgress.fractionCompleted
-                        if currentProgress != lastReportedProgress {
-                            print("📈 [PHPicker] Polling detected progress change: \(Int(currentProgress * 100))%")
-                            lastReportedProgress = currentProgress
-                            self.parent.onCopyProgress?(currentProgress)
-                        }
                     }
                 }
             } else {
