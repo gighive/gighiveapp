@@ -69,7 +69,9 @@ struct PHPickerView: UIViewControllerRepresentable {
                         return
                     }
                     // Copy to a persistent temp location so the file remains after dismissal
-                    let ext = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+                    // Force .mp4 for video files (better browser compatibility than .mov)
+                    let originalExt = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+                    let ext = originalExt.lowercased() == "mov" ? "mp4" : originalExt
                     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(ext)
                     do {
                         // Remove if exists

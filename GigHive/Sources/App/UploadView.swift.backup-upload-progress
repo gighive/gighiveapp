@@ -64,7 +64,6 @@ struct UploadView: View {
     @State private var lastProgressBucket: Int = 0
     @State private var pendingFileSizeError: FileSizeError? = nil
     @State private var photoCopyProgress: Double? = nil  // 0.0 to 1.0 for Photos copy progress
-    @State private var uploadProgress: Double? = nil  // 0.0 to 1.0 for upload progress
 
     let onUpload: (UploadPayload) -> Void
     @Environment(\.openURL) private var openURL
@@ -285,39 +284,6 @@ struct UploadView: View {
                                 }
                                 .padding(.top, 2)
                             }
-                        }
-
-                        // Upload progress indicator (similar to photo copy progress)
-                        if isUploading {
-                            HStack(spacing: 8) {
-                                if let progress = uploadProgress {
-                                    ProgressView(value: progress)
-                                        .scaleEffect(0.8)
-                                        .progressViewStyle(LinearProgressViewStyle(tint: Color(red: 0.7, green: 0.6, blue: 0.9)))
-                                        .frame(width: 40)
-                                } else {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                        .progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.7, green: 0.6, blue: 0.9)))
-                                }
-                                VStack(alignment: .leading, spacing: 4) {
-                                    if let progress = uploadProgress {
-                                        Text("Uploading video... \(Int(progress * 100))%")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                            .bold()
-                                    } else {
-                                        Text("Uploading video...")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                            .bold()
-                                    }
-                                    Text("Feel free to use other apps, your upload will continue in the background.")
-                                        .font(.caption2)
-                                        .foregroundColor(.orange.opacity(0.8))
-                                }
-                            }
-                            .padding(.vertical, 4)
                         }
 
                         if !debugLog.isEmpty {
@@ -670,13 +636,12 @@ struct UploadView: View {
         isCancelling = false
         lastButtonStatus = nil
         lastProgressBucket = 0  // Reset progress tracking for new upload
-        uploadTask = Task {
-            defer {
+        uploadTask = Task { [serverURLString, orgName, eventType, label] in
+            defer { 
                 isUploading = false
                 isCancelling = false  // Always reset cancelling state when task ends
                 loadedFileSize = nil  // Clear file size display after upload completes/cancels
                 currentUploadClient = nil  // Clear client reference
-                uploadProgress = nil  // Clear upload progress
             }
             do {
                 debugLog.append("contacting server \(serverURLString)")
@@ -705,13 +670,11 @@ struct UploadView: View {
                         return 
                     }
                     let percent = Int((Double(completed) / Double(total)) * 100.0)
-                    let fraction = Double(completed) / Double(total)  // Calculate fraction for progress view
                     let bucket = (percent / 2) * 2  // 2% increments for better feedback on slow connections
                     logWithTimestamp("📈 UploadView Progress: \(completed)/\(total) bytes = \(percent)%, bucket=\(bucket), lastBucket=\(lastProgressBucket)")
                     if bucket >= 2 && bucket > lastProgressBucket {  // Start at 2%
                         DispatchQueue.main.async {
                             lastProgressBucket = bucket
-                            self.uploadProgress = fraction  // Update upload progress state
                             debugLog.append("\(bucket)%..")
                             logWithTimestamp("✅ Added progress to debug log: \(bucket)%")
                         }
