@@ -175,7 +175,7 @@ struct UploadView: View {
                                     }
                                     VStack(alignment: .leading, spacing: 4) {
                                         if let progress = photoCopyProgress {
-                                            Text("Copying from Photos... \(Int(progress * 100))%")
+                                            Text("Preparing video from Photos... \(Int(progress * 100))%")
                                                 .font(.caption)
                                                 .foregroundColor(.orange)
                                                 .bold()
@@ -185,7 +185,7 @@ struct UploadView: View {
                                                 .foregroundColor(.orange)
                                                 .bold()
                                         }
-                                        Text("This may take a few minutes for large videos. iOS requires copying the file for security.")
+                                        Text("Converting video to H.264 format for compatibility. This may take a few minutes for large videos.\n\nTo avoid this going forward: Change iPhone Settings → Camera → Formats → \"Most Compatible\"")
                                             .font(.caption2)
                                             .foregroundColor(.orange.opacity(0.8))
                                     }
