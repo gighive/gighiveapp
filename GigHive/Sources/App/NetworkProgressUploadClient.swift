@@ -52,7 +52,7 @@ final class NetworkProgressUploadClient: NSObject {
             
             Task {
                 do {
-                    print("🚀 Direct streaming upload starting for: \(payload.fileURL.lastPathComponent)")
+                    logWithTimestamp("🚀 Direct streaming upload starting for: \(payload.fileURL.lastPathComponent)")
                     
                     // Build URL
                     let apiURL = baseURL
@@ -94,7 +94,7 @@ final class NetworkProgressUploadClient: NSObject {
                     let fileName = payload.fileURL.lastPathComponent
                     let mimeType = mimeType(for: fileName)
                     
-                    print("📤 Creating multipart stream...")
+                    logWithTimestamp("📤 Creating multipart stream...")
                     let stream = try MultipartInputStream(
                         fileURL: payload.fileURL,
                         boundary: boundary,
@@ -107,25 +107,25 @@ final class NetworkProgressUploadClient: NSObject {
                     // Set Content-Length
                     let contentLength = stream.contentLength()
                     request.setValue(String(contentLength), forHTTPHeaderField: "Content-Length")
-                    print("🔍 Content-Length: \(ByteCountFormatter.string(fromByteCount: contentLength, countStyle: .file))")
+                    logWithTimestamp("🔍 Content-Length: \(ByteCountFormatter.string(fromByteCount: contentLength, countStyle: .file))")
                     
                     // Store stream for delegate to provide
                     self.currentInputStream = stream
                     
-                    print("📤 Starting direct stream upload...")
+                    logWithTimestamp("📤 Starting direct stream upload...")
                     let task = session.uploadTask(withStreamedRequest: request)
                     self.currentUploadTask = task  // Store reference for cancellation
                     
-                    print("🔍 Task created, state: \(task.state.rawValue)")
+                    logWithTimestamp("🔍 Task created, state: \(task.state.rawValue)")
                     task.resume()
-                    print("✅ Upload task resumed, state: \(task.state.rawValue)")
-                    print("✅ Waiting for progress callbacks and completion...")
+                    logWithTimestamp("✅ Upload task resumed, state: \(task.state.rawValue)")
+                    logWithTimestamp("✅ Waiting for progress callbacks and completion...")
                     
                     // Note: Completion will be handled by URLSessionTaskDelegate.didCompleteWithError
                     // Response data accumulated in URLSessionDataDelegate.didReceive
                     
                 } catch {
-                    print("❌ Upload error: \(error.localizedDescription)")
+                    logWithTimestamp("❌ Upload error: \(error.localizedDescription)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -134,11 +134,11 @@ final class NetworkProgressUploadClient: NSObject {
     
     /// Cancel the current upload task
     func cancelUpload() {
-        print("🔴 [NetworkProgressUploadClient] cancelUpload() called")
+        logWithTimestamp("🔴 [NetworkProgressUploadClient] cancelUpload() called")
         currentUploadTask?.cancel()
         // DON'T clear currentUploadTask here - the delegate callback needs to fire
         // to call the completion handler which resumes the continuation
-        print("🔴 [NetworkProgressUploadClient] Cancelled task, waiting for delegate callback")
+        logWithTimestamp("🔴 [NetworkProgressUploadClient] Cancelled task, waiting for delegate callback")
     }
     
     // MARK: - Helper Methods
@@ -167,43 +167,43 @@ final class NetworkProgressUploadClient: NSObject {
 extension NetworkProgressUploadClient: URLSessionTaskDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, needNewBodyStream completionHandler: @escaping (InputStream?) -> Void) {
         // Provide the input stream for the upload
-        print("🔄 Delegate needNewBodyStream called - providing MultipartInputStream")
+        logWithTimestamp("🔄 Delegate needNewBodyStream called - providing MultipartInputStream")
         completionHandler(currentInputStream)
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didSendBodyData bytesSent: Int64, totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
         // This is REAL network progress - bytes actually sent over the network!
-        print("📊 Delegate didSendBodyData: \(totalBytesSent)/\(totalBytesExpectedToSend) bytes (\(Int((Double(totalBytesSent)/Double(totalBytesExpectedToSend))*100))%)")
+        logWithTimestamp("📊 Delegate didSendBodyData: \(totalBytesSent)/\(totalBytesExpectedToSend) bytes (\(Int((Double(totalBytesSent)/Double(totalBytesExpectedToSend))*100))%)")
         DispatchQueue.main.async {
             self.progressHandler?(totalBytesSent, totalBytesExpectedToSend)
         }
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        print("🏁 Delegate didCompleteWithError called - error: \(error?.localizedDescription ?? "nil")")
+        logWithTimestamp("🏁 Delegate didCompleteWithError called - error: \(error?.localizedDescription ?? "nil")")
         if let error = error {
-            print("❌ Error details: \(error)")
+            logWithTimestamp("❌ Error details: \(error)")
             if let urlError = error as? URLError {
-                print("❌ URLError code: \(urlError.code.rawValue) - \(urlError.code)")
-                print("❌ URLError failureURLString: \(urlError.failureURLString ?? "none")")
+                logWithTimestamp("❌ URLError code: \(urlError.code.rawValue) - \(urlError.code)")
+                logWithTimestamp("❌ URLError failureURLString: \(urlError.failureURLString ?? "none")")
             }
         }
-        print("🏁 Response: \(task.response.debugDescription)")
+        logWithTimestamp("🏁 Response: \(task.response.debugDescription)")
         if let httpResponse = task.response as? HTTPURLResponse {
-            print("🏁 Status code: \(httpResponse.statusCode)")
-            print("🏁 Response headers: \(httpResponse.allHeaderFields)")
+            logWithTimestamp("🏁 Status code: \(httpResponse.statusCode)")
+            logWithTimestamp("🏁 Response headers: \(httpResponse.allHeaderFields)")
         } else {
-            print("🏁 Status code: -1 (no HTTP response)")
+            logWithTimestamp("🏁 Status code: -1 (no HTTP response)")
         }
         
         DispatchQueue.main.async {
             if let error = error {
                 // Task failed or was cancelled
-                print("❌ Completing with error: \(error.localizedDescription)")
-                print("❌ Response data received before error: \(self.responseData.count) bytes")
+                logWithTimestamp("❌ Completing with error: \(error.localizedDescription)")
+                logWithTimestamp("❌ Response data received before error: \(self.responseData.count) bytes")
                 if self.responseData.count > 0 {
                     if let responseText = String(data: self.responseData, encoding: .utf8) {
-                        print("❌ Response body: \(responseText)")
+                        logWithTimestamp("❌ Response body: \(responseText)")
                     }
                 }
                 self.continuation?.resume(throwing: error)
@@ -211,9 +211,9 @@ extension NetworkProgressUploadClient: URLSessionTaskDelegate {
                 // Task completed successfully - return accumulated response data
                 let status = (task.response as? HTTPURLResponse)?.statusCode ?? -1
                 let requestURL = task.originalRequest?.url ?? self.baseURL
-                print("✅ Completing with success - status: \(status), data size: \(self.responseData.count) bytes")
+                logWithTimestamp("✅ Completing with success - status: \(status), data size: \(self.responseData.count) bytes")
                 if let responseText = String(data: self.responseData, encoding: .utf8) {
-                    print("✅ Response body: \(responseText)")
+                    logWithTimestamp("✅ Response body: \(responseText)")
                 }
                 self.continuation?.resume(returning: (status: status, data: self.responseData, requestURL: requestURL))
             }
@@ -230,19 +230,19 @@ extension NetworkProgressUploadClient: URLSessionTaskDelegate {
 // MARK: - URLSessionDataDelegate
 extension NetworkProgressUploadClient: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        print("📥 Delegate didReceive response called")
+        logWithTimestamp("📥 Delegate didReceive response called")
         if let httpResponse = response as? HTTPURLResponse {
-            print("📥 Early response status: \(httpResponse.statusCode)")
-            print("📥 Early response headers: \(httpResponse.allHeaderFields)")
+            logWithTimestamp("📥 Early response status: \(httpResponse.statusCode)")
+            logWithTimestamp("📥 Early response headers: \(httpResponse.allHeaderFields)")
             
             // Check if we're getting an error response early
             if httpResponse.statusCode >= 400 {
-                print("⚠️ Server returned error status \(httpResponse.statusCode) before upload completed!")
+                logWithTimestamp("⚠️ Server returned error status \(httpResponse.statusCode) before upload completed!")
                 
                 // Special handling for 413 - Cloudflare upload limit
                 if httpResponse.statusCode == 413 {
-                    print("🚫 HTTP 413: Cloudflare 100MB upload limit exceeded!")
-                    print("🚫 This upload will be aborted by the server")
+                    logWithTimestamp("🚫 HTTP 413: Cloudflare 100MB upload limit exceeded!")
+                    logWithTimestamp("🚫 This upload will be aborted by the server")
                 }
             }
         }
@@ -252,9 +252,9 @@ extension NetworkProgressUploadClient: URLSessionDataDelegate {
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         // Accumulate response data (can be called multiple times)
         // Completion will be called in didCompleteWithError with all accumulated data
-        print("📥 Delegate didReceive data: \(data.count) bytes (total accumulated: \(self.responseData.count + data.count) bytes)")
+        logWithTimestamp("📥 Delegate didReceive data: \(data.count) bytes (total accumulated: \(self.responseData.count + data.count) bytes)")
         if let partial = String(data: data, encoding: .utf8) {
-            print("📥 Partial response: \(partial)")
+            logWithTimestamp("📥 Partial response: \(partial)")
         }
         self.responseData.append(data)
     }

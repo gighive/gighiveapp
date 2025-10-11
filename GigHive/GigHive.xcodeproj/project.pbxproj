@@ -7,19 +7,33 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		102D2148060AC600B8A81D05 /* UploadClient.swift.backup-before-async in Resources */ = {isa = PBXBuildFile; fileRef = B8E6587A14CA31B6FA4DCBED /* UploadClient.swift.backup-before-async */; };
+		13408E015F2FA226DA9FFE59 /* UploadView.swift.backup-progress-tracking in Resources */ = {isa = PBXBuildFile; fileRef = C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */; };
+		294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839DE2678BD36275271EBF1E /* LoggingUtils.swift */; };
 		29990A45D239EBD1765249AA /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A489F209BDAB477FEC85E098 /* ShareViewController.swift */; };
+		2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3055290AEEA5443F286065A /* AppConstants.swift */; };
+		30806F9F0854B75E1ED49815 /* UploadClient.swift.backup-before-cleanup in Resources */ = {isa = PBXBuildFile; fileRef = 2DDDBD9B60D920A605C7E2B6 /* UploadClient.swift.backup-before-cleanup */; };
 		39072A6D72CD83CA7DF794CF /* PickerBridges.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */; };
+		39FFAAA9AD692677AC80593B /* UploadClient.swift.backup-before-collapse in Resources */ = {isa = PBXBuildFile; fileRef = DF88B938C5D9B69A7CA8B53A /* UploadClient.swift.backup-before-collapse */; };
+		48B3AE4EAF1FFBC062A69FB2 /* MultipartInputStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */; };
 		49009D21E3342CF9C8944C85 /* PresentationDetentsCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */; };
 		4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BF8F1B65BA95BB2142AE1C /* Theme.swift */; };
+		51702D562443137F74719EA4 /* TUSUploadClient_Clean.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = 789975307D1C982B21DBAB54 /* TUSUploadClient_Clean.swift.backup-deleted */; };
 		57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */; };
+		61C7C4B3D9A2FC12B980FD28 /* UploadView.swift.backup in Resources */ = {isa = PBXBuildFile; fileRef = 932683EF87F8F10BF078B881 /* UploadView.swift.backup */; };
 		62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89281475A43AA7EDF94EE3D1 /* UploadView.swift */; };
+		63E67D69EDF78680A4D547C5 /* PickerBridges.swift.backup in Resources */ = {isa = PBXBuildFile; fileRef = DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */; };
+		64B9BEA89E2E8F9C638735B1 /* UploadClient.swift.backup-continuation-fix in Resources */ = {isa = PBXBuildFile; fileRef = AEA4D01BFA331597672F5E36 /* UploadClient.swift.backup-continuation-fix */; };
+		7B7A151893906ED290ACD30B /* UploadView.swift.backup-progress-fix in Resources */ = {isa = PBXBuildFile; fileRef = 97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */; };
+		7FDEE6B59BCB1AABECEC3596 /* NetworkProgressUploadClient.swift.backup-before-async in Resources */ = {isa = PBXBuildFile; fileRef = FCF3780E4EC3FBA497EC4A18 /* NetworkProgressUploadClient.swift.backup-before-async */; };
 		8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */; };
+		8D5621F2D4ACCB41732843A2 /* UploadClient.swift.backup-before-rename in Resources */ = {isa = PBXBuildFile; fileRef = D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */; };
 		9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782A5D354995ABF69E0D106 /* UploadClient.swift */; };
 		B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */; };
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
-		D80F96D12E95E3F700A5703D /* MultipartInputStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80F96D02E95E3F700A5703D /* MultipartInputStream.swift */; };
-		D80F96D32E98122C00A5703D /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80F96D22E98122C00A5703D /* AppConstants.swift */; };
+		D38827C03AABB0678A73D6D6 /* UploadFormView.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */; };
+		FBB6B091D0FC6E74F96E9C4D /* PickerBridges.swift.backup-progress-tracking in Resources */ = {isa = PBXBuildFile; fileRef = EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,19 +50,33 @@
 		04BF8F1B65BA95BB2142AE1C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		2782A5D354995ABF69E0D106 /* UploadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadClient.swift; sourceTree = "<group>"; };
 		27B7D8F789D32F70CA4F3E6F /* GigHive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GigHive.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2DDDBD9B60D920A605C7E2B6 /* UploadClient.swift.backup-before-cleanup */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-cleanup"; sourceTree = "<group>"; };
 		4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
-		593FA484CF10D70E6F624D69 /* GigHiveShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GigHiveShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		593FA484CF10D70E6F624D69 /* GigHiveShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = GigHiveShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProgressUploadClient.swift; sourceTree = "<group>"; };
+		789975307D1C982B21DBAB54 /* TUSUploadClient_Clean.swift.backup-deleted */ = {isa = PBXFileReference; lastKnownFileType = text; path = "TUSUploadClient_Clean.swift.backup-deleted"; sourceTree = "<group>"; };
 		7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GigHiveApp.swift; sourceTree = "<group>"; };
+		839DE2678BD36275271EBF1E /* LoggingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingUtils.swift; sourceTree = "<group>"; };
 		89281475A43AA7EDF94EE3D1 /* UploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadView.swift; sourceTree = "<group>"; };
 		8BB812D531E316E19AC8653E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		932683EF87F8F10BF078B881 /* UploadView.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = UploadView.swift.backup; sourceTree = "<group>"; };
+		97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadView.swift.backup-progress-fix"; sourceTree = "<group>"; };
 		A489F209BDAB477FEC85E098 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationDetentsCompat.swift; sourceTree = "<group>"; };
+		AEA4D01BFA331597672F5E36 /* UploadClient.swift.backup-continuation-fix */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-continuation-fix"; sourceTree = "<group>"; };
+		B8E6587A14CA31B6FA4DCBED /* UploadClient.swift.backup-before-async */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-async"; sourceTree = "<group>"; };
+		C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadView.swift.backup-progress-tracking"; sourceTree = "<group>"; };
 		CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerBridges.swift; sourceTree = "<group>"; };
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
-		D80F96D02E95E3F700A5703D /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
-		D80F96D22E98122C00A5703D /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-rename"; sourceTree = "<group>"; };
+		D3055290AEEA5443F286065A /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = PickerBridges.swift.backup; sourceTree = "<group>"; };
+		DF88B938C5D9B69A7CA8B53A /* UploadClient.swift.backup-before-collapse */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-collapse"; sourceTree = "<group>"; };
 		E2BD80677E697C313615AB9A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */ = {isa = PBXFileReference; lastKnownFileType = text; path = "PickerBridges.swift.backup-progress-tracking"; sourceTree = "<group>"; };
+		F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadFormView.swift.backup-deleted"; sourceTree = "<group>"; };
+		FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
+		FCF3780E4EC3FBA497EC4A18 /* NetworkProgressUploadClient.swift.backup-before-async */ = {isa = PBXFileReference; lastKnownFileType = text; path = "NetworkProgressUploadClient.swift.backup-before-async"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -74,17 +102,31 @@
 		688C093A5F5BE143D3054F19 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				D80F96D22E98122C00A5703D /* AppConstants.swift */,
-				D80F96D02E95E3F700A5703D /* MultipartInputStream.swift */,
+				D3055290AEEA5443F286065A /* AppConstants.swift */,
 				7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */,
 				4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */,
+				839DE2678BD36275271EBF1E /* LoggingUtils.swift */,
+				FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */,
 				5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */,
+				FCF3780E4EC3FBA497EC4A18 /* NetworkProgressUploadClient.swift.backup-before-async */,
 				CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */,
+				DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */,
+				EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */,
 				AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */,
 				D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */,
 				04BF8F1B65BA95BB2142AE1C /* Theme.swift */,
+				789975307D1C982B21DBAB54 /* TUSUploadClient_Clean.swift.backup-deleted */,
 				2782A5D354995ABF69E0D106 /* UploadClient.swift */,
+				B8E6587A14CA31B6FA4DCBED /* UploadClient.swift.backup-before-async */,
+				2DDDBD9B60D920A605C7E2B6 /* UploadClient.swift.backup-before-cleanup */,
+				DF88B938C5D9B69A7CA8B53A /* UploadClient.swift.backup-before-collapse */,
+				D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */,
+				AEA4D01BFA331597672F5E36 /* UploadClient.swift.backup-continuation-fix */,
+				F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */,
 				89281475A43AA7EDF94EE3D1 /* UploadView.swift */,
+				932683EF87F8F10BF078B881 /* UploadView.swift.backup */,
+				97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */,
+				C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */,
 			);
 			name = App;
 			path = Sources/App;
@@ -146,7 +188,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					474F2977B888115D9AAE79C9 = {
 						ProvisioningStyle = Automatic;
@@ -182,6 +224,19 @@
 			files = (
 				C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */,
 				57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */,
+				7FDEE6B59BCB1AABECEC3596 /* NetworkProgressUploadClient.swift.backup-before-async in Resources */,
+				63E67D69EDF78680A4D547C5 /* PickerBridges.swift.backup in Resources */,
+				FBB6B091D0FC6E74F96E9C4D /* PickerBridges.swift.backup-progress-tracking in Resources */,
+				51702D562443137F74719EA4 /* TUSUploadClient_Clean.swift.backup-deleted in Resources */,
+				102D2148060AC600B8A81D05 /* UploadClient.swift.backup-before-async in Resources */,
+				30806F9F0854B75E1ED49815 /* UploadClient.swift.backup-before-cleanup in Resources */,
+				39FFAAA9AD692677AC80593B /* UploadClient.swift.backup-before-collapse in Resources */,
+				8D5621F2D4ACCB41732843A2 /* UploadClient.swift.backup-before-rename in Resources */,
+				64B9BEA89E2E8F9C638735B1 /* UploadClient.swift.backup-continuation-fix in Resources */,
+				D38827C03AABB0678A73D6D6 /* UploadFormView.swift.backup-deleted in Resources */,
+				61C7C4B3D9A2FC12B980FD28 /* UploadView.swift.backup in Resources */,
+				7B7A151893906ED290ACD30B /* UploadView.swift.backup-progress-fix in Resources */,
+				13408E015F2FA226DA9FFE59 /* UploadView.swift.backup-progress-tracking in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -192,15 +247,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */,
 				BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */,
+				294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */,
+				48B3AE4EAF1FFBC062A69FB2 /* MultipartInputStream.swift in Sources */,
 				B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */,
 				39072A6D72CD83CA7DF794CF /* PickerBridges.swift in Sources */,
 				49009D21E3342CF9C8944C85 /* PresentationDetentsCompat.swift in Sources */,
 				8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */,
 				4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */,
-				D80F96D32E98122C00A5703D /* AppConstants.swift in Sources */,
 				9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */,
-				D80F96D12E95E3F700A5703D /* MultipartInputStream.swift in Sources */,
 				62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -236,7 +292,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive.Share;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive.Share;
 				PRODUCT_NAME = GigHiveShare;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -251,13 +307,14 @@
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHive.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -301,11 +358,9 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -369,11 +424,9 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				ENABLE_BITCODE = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -406,7 +459,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive.Share;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive.Share;
 				PRODUCT_NAME = GigHiveShare;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -421,13 +474,14 @@
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHive.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;

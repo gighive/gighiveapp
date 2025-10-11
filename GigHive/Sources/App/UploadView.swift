@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import Foundation
 
 // Helper struct for file size error state
 struct FileSizeError: Equatable {
@@ -338,7 +339,7 @@ struct UploadView: View {
                 if let url = url {
                     // Don't set isLoadingMedia here - it gets interrupted by picker dismissal
                     // Instead, set fileURL and let .onChange() handle the loading state
-                    print("📸 [PHPicker] File selected, setting fileURL")
+                    logWithTimestamp("📸 [PHPicker] File selected, setting fileURL")
                     self.loadedFileSize = nil
                     self.fileURL = url
                     self.showPhotosPicker = false
@@ -353,19 +354,19 @@ struct UploadView: View {
                 }
             }, onFileTooLarge: { fileSize, maxSize in
                 // Dismiss picker first, then set error state
-                print("🚫 [PHPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
+                logWithTimestamp("🚫 [PHPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
                 debugLog.append("file rejected: \(fileSize) > \(maxSize)")
                 self.showPhotosPicker = false
-                print("🚫 [PHPicker] Dismissed picker sheet")
+                logWithTimestamp("🚫 [PHPicker] Dismissed picker sheet")
                 // Delay setting error until after picker dismisses
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    print("🚫 [PHPicker] Setting pendingFileSizeError state")
+                    logWithTimestamp("🚫 [PHPicker] Setting pendingFileSizeError state")
                     self.pendingFileSizeError = FileSizeError(fileSize: fileSize, maxSize: maxSize)
-                    print("🚫 [PHPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
+                    logWithTimestamp("🚫 [PHPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
                 }
             }, onCopyStarted: {
                 // File copy from Photos has started - show progress immediately
-                print("📸 [PHPicker] onCopyStarted - showing progress indicator")
+                logWithTimestamp("📸 [PHPicker] onCopyStarted - showing progress indicator")
                 self.isLoadingMedia = true
                 self.mediaLoadingStartedAt = Date()
                 self.loadedFileSize = nil
@@ -433,15 +434,15 @@ struct UploadView: View {
                 },
                 onFileTooLarge: { fileSize, maxSize in
                     // Dismiss picker first, then set error state
-                    print("🚫 [DocumentPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
+                    logWithTimestamp("🚫 [DocumentPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
                     debugLog.append("file rejected: \(fileSize) > \(maxSize)")
                     self.showFilesPicker = false
-                    print("🚫 [DocumentPicker] Dismissed picker sheet")
+                    logWithTimestamp("🚫 [DocumentPicker] Dismissed picker sheet")
                     // Delay setting error until after picker dismisses
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        print("🚫 [DocumentPicker] Setting pendingFileSizeError state")
+                        logWithTimestamp("🚫 [DocumentPicker] Setting pendingFileSizeError state")
                         self.pendingFileSizeError = FileSizeError(fileSize: fileSize, maxSize: maxSize)
-                        print("🚫 [DocumentPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
+                        logWithTimestamp("🚫 [DocumentPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
                     }
                 }
             )
@@ -452,21 +453,21 @@ struct UploadView: View {
             // This runs AFTER picker dismisses, so UI updates work properly
             guard let newURL = newURL else {
                 // File was cleared
-                print("📸 [onChange(fileURL)] File cleared")
+                logWithTimestamp("📸 [onChange(fileURL)] File cleared")
                 return
             }
             
             // Only show loading if we don't have a file size yet
             // (Files picker is fast and doesn't need progress)
             guard loadedFileSize == nil else {
-                print("📸 [onChange(fileURL)] File size already loaded, skipping progress")
+                logWithTimestamp("📸 [onChange(fileURL)] File size already loaded, skipping progress")
                 return
             }
             
-            print("📸 [onChange(fileURL)] New file selected, starting progress after delay")
+            logWithTimestamp("📸 [onChange(fileURL)] New file selected, starting progress after delay")
             // Small delay to ensure picker sheet is fully dismissed
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("📸 [onChange(fileURL)] Showing loading indicator")
+                logWithTimestamp("📸 [onChange(fileURL)] Showing loading indicator")
                 self.isLoadingMedia = true
                 self.mediaLoadingStartedAt = Date()
                 debugLog.append("reading file metadata...")
@@ -486,9 +487,9 @@ struct UploadView: View {
                     let started = self.mediaLoadingStartedAt ?? Date()
                     let elapsed = Date().timeIntervalSince(started)
                     let remaining = max(0, minVisible - elapsed)
-                    print("📸 [Background] File size calculated: \(sizeText), elapsed: \(elapsed)s, remaining: \(remaining)s")
+                    logWithTimestamp("📸 [Background] File size calculated: \(sizeText), elapsed: \(elapsed)s, remaining: \(remaining)s")
                     DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
-                        print("📸 [Background] Updating UI with file size")
+                        logWithTimestamp("📸 [Background] Updating UI with file size")
                         self.loadedFileSize = sizeText
                         self.isLoadingMedia = false
                         self.mediaLoadingStartedAt = nil
@@ -499,22 +500,22 @@ struct UploadView: View {
         }
         .onChange(of: pendingFileSizeError) { error in
             // Trigger alert when file size error is set, with delay to allow picker to fully dismiss
-            print("🔔 [onChange] pendingFileSizeError changed to: \(String(describing: error))")
+            logWithTimestamp("🔔 [onChange] pendingFileSizeError changed to: \(String(describing: error))")
             guard let error = error else { 
-                print("🔔 [onChange] Error is nil, returning")
+                logWithTimestamp("🔔 [onChange] Error is nil, returning")
                 return 
             }
-            print("🔔 [onChange] Scheduling alert with 0.6s delay")
+            logWithTimestamp("🔔 [onChange] Scheduling alert with 0.6s delay")
             let fileSize = error.fileSize
             let maxSize = error.maxSize
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                print("🔔 [onChange] Showing alert now")
+                logWithTimestamp("🔔 [onChange] Showing alert now")
                 self.alertTitle = "File Too Large"
                 self.alertMessage = "The selected file (\(fileSize)) exceeds the maximum allowed size of \(maxSize).\n\nPlease select a smaller file or compress the video before uploading."
                 self.showResultAlert = true
-                print("🔔 [onChange] showResultAlert set to true")
+                logWithTimestamp("🔔 [onChange] showResultAlert set to true")
                 self.pendingFileSizeError = nil  // Clear after showing
-                print("🔔 [onChange] Cleared pendingFileSizeError")
+                logWithTimestamp("🔔 [onChange] Cleared pendingFileSizeError")
             }
         }
         .onChange(of: autogenLabel) { on in if on { label = autoLabel() }; resetCancelledStatus() }
@@ -665,17 +666,17 @@ struct UploadView: View {
                     }
                     
                     guard total > 0 else { 
-                        print("⚠️ Progress callback: total is 0")
+                        logWithTimestamp("⚠️ Progress callback: total is 0")
                         return 
                     }
                     let percent = Int((Double(completed) / Double(total)) * 100.0)
-                    let bucket = (percent / 5) * 5  // Changed from 10% to 5% increments
-                    print("📈 UploadView Progress: \(completed)/\(total) bytes = \(percent)%, bucket=\(bucket), lastBucket=\(lastProgressBucket)")
-                    if bucket >= 5 && bucket > lastProgressBucket {  // Changed from 10 to 5
+                    let bucket = (percent / 2) * 2  // 2% increments for better feedback on slow connections
+                    logWithTimestamp("📈 UploadView Progress: \(completed)/\(total) bytes = \(percent)%, bucket=\(bucket), lastBucket=\(lastProgressBucket)")
+                    if bucket >= 2 && bucket > lastProgressBucket {  // Start at 2%
                         DispatchQueue.main.async {
                             lastProgressBucket = bucket
                             debugLog.append("\(bucket)%..")
-                            print("✅ Added progress to debug log: \(bucket)%")
+                            logWithTimestamp("✅ Added progress to debug log: \(bucket)%")
                         }
                     }
                 })

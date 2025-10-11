@@ -87,7 +87,7 @@ final class UploadClient {
             )
         } onCancel: {
             // When Swift Task is cancelled, cancel the underlying network upload
-            print("⚠️ [uploadWithMultipartInputStream] Task cancelled - cancelling network upload")
+            logWithTimestamp("⚠️ [uploadWithMultipartInputStream] Task cancelled - cancelling network upload")
             networkClient.cancelUpload()
         }
     }
@@ -95,10 +95,10 @@ final class UploadClient {
     
     /// Cancel the current upload
     func cancelCurrentUpload() {
-        print("🔴 [UploadClient] cancelCurrentUpload() called")
+        logWithTimestamp("🔴 [UploadClient] cancelCurrentUpload() called")
         currentNetworkClient?.cancelUpload()
         // DON'T clear currentNetworkClient here - it needs to stay alive to fire the completion callback
         // which will resume the continuation. It will be cleared when the completion fires.
-        print("🔴 [UploadClient] cancelCurrentUpload() completed - currentNetworkClient still alive for callback")
+        logWithTimestamp("🔴 [UploadClient] cancelCurrentUpload() completed - currentNetworkClient still alive for callback")
     }
 }
