@@ -309,12 +309,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive;
+				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -476,12 +477,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive;
+				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
