@@ -2,16 +2,19 @@ import SwiftUI
 
 @main
 struct GigHiveApp: App {
+    @StateObject private var session = AuthSession()
     var body: some Scene {
         WindowGroup {
             if #available(iOS 16.0, *) {
                 NavigationStack {
-                    UploadView { _ in }
+                    SplashView()
                 }
+                .environmentObject(session)
             } else {
                 NavigationView {
-                    UploadView { _ in }
+                    SplashView()
                 }
+                .environmentObject(session)
                 .navigationViewStyle(StackNavigationViewStyle())
             }
         }

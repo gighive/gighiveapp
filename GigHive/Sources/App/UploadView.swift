@@ -31,6 +31,7 @@ struct LabeledField<Content: View>: View {
 }
 
 struct UploadView: View {
+    @EnvironmentObject var session: AuthSession
     // SERVER
     @AppStorage("gh_server_url") private var serverURLString: String = "https://gighive" // editable by user
     @AppStorage("gh_basic_user") private var username: String = ""
@@ -81,56 +82,11 @@ struct UploadView: View {
                         .font(.title3).bold()
                         .ghForeground(GHTheme.text)
                 }
-
-                // SERVER CARD
-                GHCard(pad: 8) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        GHLabel(text: "SERVER")
-
-                        LabeledField("") {
-                            NoAccessoryTextField(
-                                text: $serverURLString,
-                                placeholder: "https://example.com",
-                                keyboardType: .URL,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
-                        }
-
-                        LabeledField("Username *") {
-                            NoAccessoryTextField(
-                                text: $username,
-                                placeholder: "admin/uploader username",
-                                keyboardType: .default,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
-                        }
-
-                        LabeledField("Password *") {
-                            NoAccessorySecureField(
-                                text: $password,
-                                placeholder: "password",
-                                keyboardType: .default,
-                                autocapitalizationType: .none,
-                                autocorrectionType: .no
-                            )
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .ghBackgroundMaterial()
-                            .cornerRadius(6)
-                        }
-
-                        // Default event type removed from SERVER: we persist the META selection instead.
-                    }
+                // Logged-in banner
+                if let creds = session.credentials {
+                    Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(creds.user)")
+                        .font(.footnote)
+                        .foregroundColor(.orange)
                 }
 
                 GHCard(pad: 8) {
@@ -328,10 +284,8 @@ struct UploadView: View {
                         }
 
 
-                        if let url = successURL {
-                            Button(action: {
-                                openURL(url)
-                            }) {
+                        if successURL != nil {
+                            NavigationLink(destination: DatabaseView()) {
                                 Text("View in Database")
                                     .frame(maxWidth: .infinity)
                             }
@@ -339,11 +293,7 @@ struct UploadView: View {
                             .padding(.top, 8)
                         }
 
-                        Toggle(isOn: $allowInsecureTLS) {
-                            Text("Disable Certificate Checking").font(.caption2).ghForeground(GHTheme.muted)
-                        }
-                        .ghTint(GHTheme.accent)
-                        .padding(.top, 4)
+                        // Cert-bypass is controlled globally via session; no toggle here.
 
                         Button(action: hideKeyboard) {
                             Text("Hide Keyboard").font(.caption)
@@ -562,12 +512,11 @@ struct UploadView: View {
         .onChange(of: fileURL) { _ in resetCancelledStatus() }
         .onChange(of: orgName) { _ in resetCancelledStatus() }
         .onChange(of: label) { _ in resetCancelledStatus() }
-        .onChange(of: serverURLString) { _ in resetCancelledStatus() }
-        .onChange(of: username) { _ in resetCancelledStatus() }
-        .onChange(of: password) { _ in resetCancelledStatus() }
         .onAppear {
             // Initialize META picker from the last used value
             eventType = storedEventType
+            // Sync TLS toggle from shared session (authority for cert-bypass)
+            allowInsecureTLS = session.allowInsecureTLS
         }
         .alert(isPresented: $showResultAlert) {
             Alert(
@@ -586,16 +535,6 @@ struct UploadView: View {
 
     private func getValidationMessages() -> [String] {
         var messages: [String] = []
-        
-        // Check username
-        if username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            messages.append("Username is required")
-        }
-        
-        // Check password
-        if password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            messages.append("Password is required")
-        }
 
         // Check media file
         if fileURL == nil {
@@ -654,7 +593,21 @@ struct UploadView: View {
             debugLog.append("file size: unknown")
         }
         
-        guard let base = URL(string: serverURLString) else { debugLog.append("invalid server url"); alertTitle = "Invalid Server URL"; alertMessage = "Please enter a valid https:// server URL."; showResultAlert = true; return }
+        // Use shared session auth + base URL
+        guard let base = session.baseURL else { 
+            debugLog.append("not logged in")
+            alertTitle = "Not Logged In"
+            alertMessage = "Please login first to upload."
+            showResultAlert = true
+            return 
+        }
+        guard let creds = session.credentials else {
+            debugLog.append("missing credentials in session")
+            alertTitle = "Missing Credentials"
+            alertMessage = "Please login again to provide upload credentials."
+            showResultAlert = true
+            return
+        }
         let payload = UploadPayload(
             fileURL: fileURL,
             eventDate: eventDate,
@@ -664,7 +617,7 @@ struct UploadView: View {
             participants: nil, keywords: nil, location: nil, rating: nil, notes: nil
         )
         // Build client using the provided server credentials
-        let client = UploadClient(baseURL: base, basicAuth: (username, password), useBackgroundSession: false, allowInsecure: allowInsecureTLS)
+        let client = UploadClient(baseURL: base, basicAuth: (creds.user, creds.pass), useBackgroundSession: false, allowInsecure: session.allowInsecureTLS)
         currentUploadClient = client  // Store reference for cancellation
         isUploading = true
         isCancelling = false
@@ -679,7 +632,7 @@ struct UploadView: View {
                 uploadProgress = nil  // Clear upload progress
             }
             do {
-                debugLog.append("contacting server \(serverURLString)")
+                debugLog.append("contacting server \(base.absoluteString)")
                 // Pre-log the exact request URL to place progress after this line
                 let apiURL = base
                     .appendingPathComponent("api")
@@ -743,9 +696,11 @@ struct UploadView: View {
                     }
                     debugLog.append("cleared file and label")
                     debugLog.append("\n\nYou are free to upload another file.")
-                case 401:
-                    alertTitle = "Unauthorized"
-                    alertMessage = "401 Unauthorized. Check Basic Auth username/password."
+                case 401, 403:
+                    alertTitle = status == 401 ? "Unauthorized" : "Forbidden"
+                    alertMessage = status == 401 
+                        ? "401 Unauthorized. You do not have permission to upload to this server. Please re-login as an admin or uploader."
+                        : "403 Forbidden. You do not have permission to upload to this server. Please re-login as an admin or uploader."
                     failureCount += 1
                 case 413:
                     alertTitle = "File Too Large"

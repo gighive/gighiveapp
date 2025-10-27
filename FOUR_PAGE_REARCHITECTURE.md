@@ -1,122 +1,37 @@
-# GigHive Database Viewer Implementation Plan
+# Four Page Rearchitecture
 
 ## Overview
 Convert the "View in Database" button from opening external browser to displaying a native iPhone SwiftUI view that consumes the GigHive web server API.
 
 ---
 
-## Phase 1: Server-Side Changes (PHP Repository)
+## Phase 3: UploadView Refactor (Implemented)
 
-### Goal
-Add JSON output capability to existing `/db/database.php` endpoint without breaking HTML functionality.
+### Scope
 
-### Changes Required
+- Reuse existing UploadClient protocol and request shape; no server contract changes.
+- Refactor UploadView to consume session:
+  - baseURL from `AuthSession.baseURL`
+  - BasicAuth from `AuthSession.credentials`
+  - TLS bypass from `AuthSession.allowInsecureTLS`
+- Keep picker/progress UI and existing debug logs unchanged.
+- Permissions and routing:
+  - If not logged in → route to Login with intendedRoute `.upload` (handled via alert + user action).
+  - If server responds 401/403 → show inline message prompting re‑login as admin/uploader.
 
-#### 1.1 Modify `src/Controllers/MediaController.php`
+### Notes
 
-**Add new method after the existing `list()` method:**
+- UploadView mirrors the shared TLS toggle on appear.
+- Error messages:
+  - 401/403: “You do not have permission to upload… re‑login as admin or uploader.”
+  - Other statuses keep prior behavior.
 
-```php
-/**
- * Return media list as JSON instead of HTML
- */
-public function listJson(): Response
-{
-    $rows = $this->repo->fetchMediaList();
+### Testing Phase 3
 
-    $counter = 1;
-    $entries = [];
-    foreach ($rows as $row) {
-        $id        = isset($row['id']) ? (int)$row['id'] : 0;
-        $date      = (string)($row['date'] ?? '');
-        $orgName   = (string)($row['org_name'] ?? '');
-        $duration  = self::secondsToHms(isset($row['duration_seconds']) ? (string)$row['duration_seconds'] : '');
-        $durationSec = isset($row['duration_seconds']) && $row['duration_seconds'] !== null
-            ? (int)$row['duration_seconds']
-            : 0;
-        $songTitle = (string)($row['song_title'] ?? '');
-        $typeRaw   = (string)($row['file_type'] ?? '');
-        $file      = (string)($row['file_name'] ?? '');
-
-        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-        $dir = ($ext === 'mp3') ? '/audio' : (($ext === 'mp4') ? '/video' : '');
-        if ($dir === '' && ($typeRaw === 'audio' || $typeRaw === 'video')) {
-            $dir = '/' . $typeRaw;
-        }
-        $url = ($dir && $file) ? $dir . '/' . rawurlencode($file) : '';
-
-        $entries[] = [
-            'id'               => $id,
-            'index'            => $counter++,
-            'date'             => $date,
-            'org_name'         => $orgName,
-            'duration'         => $duration,
-            'duration_seconds' => $durationSec,
-            'song_title'       => $songTitle,
-            'file_type'        => $typeRaw,
-            'file_name'        => $file,
-            'url'              => $url,
-        ];
-    }
-
-    $body = json_encode(['entries' => $entries], JSON_PRETTY_PRINT);
-    return new Response(200, ['Content-Type' => 'application/json'], $body);
-}
-```
-
-#### 1.2 Modify `db/database.php`
-
-**Replace line 19 (`$response = $controller->list();`) with:**
-
-```php
-// Check if JSON format is requested via query parameter
-$wantsJson = isset($_GET['format']) && $_GET['format'] === 'json';
-
-// Route to appropriate method
-$response = $wantsJson ? $controller->listJson() : $controller->list();
-```
-
-### Testing Phase 1
-
-After deployment, test:
-
-1. **HTML still works:**
-   ```
-   https://dev.gighive.app/db/database.php
-   → Should return HTML table (existing behavior)
-   ```
-
-2. **JSON now available:**
-   ```
-   https://dev.gighive.app/db/database.php?format=json
-   → Should return JSON array
-   ```
-
-3. **Authentication:**
-   - Both endpoints should require BasicAuth (viewer/secretviewer)
-
-### Expected JSON Response Format
-
-```json
-{
-  "entries": [
-    {
-      "id": 123,
-      "index": 1,
-      "date": "2024-10-20",
-      "org_name": "The Jazz Band",
-      "duration": "03:45:12",
-      "duration_seconds": 13512,
-      "song_title": "Blue Moon",
-      "file_type": "video",
-      "file_name": "jazz_band_2024-10-20.mp4",
-      "url": "/video/jazz_band_2024-10-20.mp4"
-    }
-  ]
-}
-```
-
----
+- Not logged in → Upload prompts to login; after signing in, return to Upload.
+- Logged in as permitted account → upload succeeds; progress lines and UI behave as before.
+- Logged in without permission → 401/403 message shown; quick path to Login.
+- Cert bypass ON/OFF → both paths function against local/valid TLS servers.
 
 ## Phase 2: iOS App Changes (GigHive Repository)
 
@@ -131,8 +46,114 @@ Create native SwiftUI views to display database contents using the new JSON API.
 - **Session:** In-memory session holds `baseURL`, `credentials`, `allowInsecureTLS`, and a derived `role` (viewer/admin). No persistence to disk.
 - **Permissions:** Viewer can view database; admin can upload. If a viewer attempts upload, show guidance to re-login as admin.
  - **UI Consistency:** Reuse existing look and feel across all views (bee logo title header, fonts, colors, button styles like `GHButtonStyle`).
+ - **Deployment Target:** iPhone 12 baseline (iOS 15+). Use iOS 15-compatible APIs with availability checks and fallbacks.
+ - **Auth Enhancements:** Lightweight server validation on Sign In (calls JSON endpoint); optional device-only "Remember on this device" via Keychain per host.
+ - **In-App Playback:** Play audio/video inside the app using AVPlayer/VideoPlayer with BasicAuth headers; keep Share as-is. Note TLS/ATS caveat for AVPlayer.
+  - UX: Player sheet includes a visible Close button in the navigation bar.
 
-### Additional Files to Create
+### UI Messaging and Error Styling
+
+- **Informational messages** (e.g., guidance on Splash, success/neutral notices): use the same orange color as the original page.
+- **Errors** (e.g., invalid URL, auth failures, network errors): use the same red debug text style from the original upload page.
+- Apply consistently across the four views.
+
+### Debug Logging Convention
+
+- Use the existing timestamped logger `logWithTimestamp(_:)` for all new user-interactive pages (Splash, Login, View Database, Upload variants, Detail).
+- Log key user actions and lifecycle points, for example:
+  - View appearances and dismissals
+  - Button taps (Login, View Database, Upload, Retry, Play, Share)
+  - Network call start/success/failure summaries (e.g., counts, status codes)
+- Keep logs concise and action-oriented, e.g.:
+  - `[time] [Login] Sign in started`
+  - `[time] [Login] Auth success`
+  - `[time] [DB] Loaded 123 entries`
+  - `[time] [DB] Error: HTTP 401`
+
+### High-Level Implementation Plan
+
+- **AuthSession (in-memory)**
+  - <span style="color:#0a0">NEW</span> `AuthSession` (`ObservableObject`) with:
+    - `baseURL: URL?`
+    - `credentials: (user, pass)?`
+    - `allowInsecureTLS: Bool`
+    - `role: .unknown | .viewer | .admin`
+    - `intendedRoute: .viewDatabase | .upload`
+  - Inject as `@EnvironmentObject` at app entry. No persistence.
+
+- **SplashView**
+  - Reuse existing title header with bee logo and brand font/style.
+  - <span style="color:#0a0">NEW</span> `SplashView` with buttons:
+    - View the Database → set `intendedRoute = .viewDatabase`
+    - Upload a File → set `intendedRoute = .upload`
+    - Login → present `LoginView`
+  - Guard: If unauthenticated and user taps View/Upload, route to `LoginView` first; after login, continue to intended route.
+
+- **LoginView**
+  - <span style="color:#0a0">NEW</span> `LoginView` with:
+    - Fields: Base URL, Username, Password
+    - Toggle: Disable certificate checking
+    - On Sign In: Perform lightweight validation (JSON fetch); on success, set session `baseURL`, `credentials`, `allowInsecureTLS`, `role = .unknown`; route to `intendedRoute`.
+    - Optional: <span style="color:#0a0">NEW</span> "Remember on this device" toggle to save/delete creds in Keychain per host; prefill on appear if found.
+
+- **Models and API Client**
+  - <span style="color:#0a0">NEW</span> `MediaEntry` and `MediaListResponse` models.
+  - <span style="color:#0a0">NEW</span> `DatabaseAPIClient` using `/db/database.php?format=json`, applying BasicAuth from session, respecting insecure TLS, throwing `DatabaseError`.
+
+- **DatabaseView**
+  - <span style="color:#0a0">NEW</span> `DatabaseView` uses session for `baseURL`, `credentials`, `allowInsecureTLS`.
+  - Features: loading, error with Retry, empty state, list with search (band/song/date/type), pull-to-refresh, navigation to detail.
+
+- **DatabaseDetailView**
+  - <span style="color:#0a0">NEW</span> `DatabaseDetailView` with metadata, open-in-browser, and ShareLink.
+  - <span style="color:#0a0">NEW</span> `DetailRow` helper for labeled values.
+
+- **UploadView (Refactor)**
+  - Remove embedded auth UI; use session credentials/TLS.
+  - If unauthenticated → go to login. If viewer creds → show re-login-as-admin messaging and provide quick link to Login with intent `.upload`.
+
+- **Navigation Guards**
+  - Global: If `session.credentials == nil`, redirect to Login before View/Upload. After login, navigate to `intendedRoute`.
+
+- **Implementation Order**
+  - <span style="color:#0a0">NEW</span> `AuthSession`, <span style="color:#0a0">NEW</span> `SplashView`, <span style="color:#0a0">NEW</span> `LoginView`.
+  - Wire navigation guards and intended-route handling.
+  - <span style="color:#0a0">NEW</span> models and `DatabaseAPIClient`.
+  - <span style="color:#0a0">NEW</span> `DatabaseView`, <span style="color:#0a0">NEW</span> `DatabaseDetailView`; refactor `UploadView`.
+
+### Platform Compatibility (iPhone 12 baseline)
+
+- **Minimum iOS**: Target iOS 15+ (iPhone 12 supports this). All planned APIs are available on iOS 15 except ShareLink and NavigationStack.
+- **Navigation**: Use `NavigationStack` on iOS 16+, fall back to `NavigationView` on iOS 15 (already reflected in `GigHiveApp`).
+- **Search/Refresh**: `.searchable` and `.refreshable` require iOS 15+ (OK).
+- **Dismiss**: `@Environment(\.dismiss)` requires iOS 15+ (OK).
+- **Share**: `ShareLink` is iOS 16+. Provide an iOS 15 fallback share button using a small helper that presents `UIActivityViewController`.
+- **TLS**: Insecure TLS delegate usage is unaffected by iOS 15+ baseline.
+
+### Phased Implementation
+
+- **Phase 0: Session foundation**
+  - Create `AuthSession` and inject as `EnvironmentObject`. No UI changes; existing screens keep working.
+  - Tests: app builds; session is accessible across views.
+
+- **Phase 1: Entry + Login**
+  - Add `SplashView` (bee logo header, three buttons) and `LoginView` (Base URL, Username, Password, Disable certificate checking).
+  - Soft-routing only (no global guards yet). Verify session values and TLS toggle via a trivial request.
+
+- **Phase 2: Database API and View**
+  - Implement `MediaEntry`, `MediaListResponse`, and `DatabaseAPIClient`.
+  - Add `DatabaseView` (list, search, refresh, detail open/share, errors) using session creds/TLS.
+  - Enable navigation from Splash → DatabaseView when logged in.
+
+- **Phase 3: Upload refactor**
+  - Refactor `UploadView` to use session (remove auth UI). Add viewer-only messaging with link to re-login as admin.
+  - Tests: admin can upload; viewer blocked with guidance.
+
+- **Phase 4: Guards and polish**
+  - Enable global guards: unauthenticated taps on View/Upload route to Login, then back to intended destination.
+  - Final UI consistency, accessibility, and QA (dark mode, device sizes).
+
+### Files to Create
 
 #### 2.0 `GigHive/Sources/App/AuthSession.swift`
 
@@ -150,6 +171,13 @@ final class AuthSession: ObservableObject {
 
 enum UserRole { case unknown, viewer, admin }
 enum AppRoute { case viewDatabase, upload }
+```
+
+#### 2.7 `GigHive/Sources/App/MediaPlayerView.swift`
+
+```swift
+// SwiftUI view that plays media in-app using AVPlayer. Accepts BasicAuth via AVURLAsset headers.
+// iOS 15-compatible Close control: wraps content in NavigationView and dismisses via presentationMode.wrappedValue.dismiss().
 ```
 
 #### 2.1 `GigHive/Sources/App/SplashView.swift`
@@ -242,8 +270,6 @@ struct LoginView: View {
 }
 ```
 
-### Files to Create
-
 #### 2.1 `GigHive/Sources/App/DatabaseModels.swift`
 
 ```swift
@@ -277,7 +303,7 @@ struct MediaListResponse: Codable {
 }
 ```
 
-#### 2.2 `GigHive/Sources/App/DatabaseAPIClient.swift`
+#### 2.4 `GigHive/Sources/App/DatabaseAPIClient.swift`
 
 ```swift
 import Foundation
@@ -355,7 +381,7 @@ enum DatabaseError: Error, LocalizedError {
 }
 ```
 
-#### 2.3 `GigHive/Sources/App/DatabaseView.swift`
+#### 2.5 `GigHive/Sources/App/DatabaseView.swift`
 
 ```swift
 import SwiftUI
@@ -504,7 +530,7 @@ struct MediaEntryRow: View {
 }
 ```
 
-#### 2.4 `GigHive/Sources/App/DatabaseDetailView.swift`
+#### 2.6 `GigHive/Sources/App/DatabaseDetailView.swift`
 
 ```swift
 import SwiftUI
@@ -540,10 +566,19 @@ struct DatabaseDetailView: View {
                 }
                 
                 if let url = URL(string: entry.url, relativeTo: baseURL) {
-                    ShareLink(item: url) {
-                        HStack {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Share")
+                    if #available(iOS 16.0, *) {
+                        ShareLink(item: url) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Share")
+                            }
+                        }
+                    } else {
+                        Button(action: { ShareHelper.present(url) }) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Share")
+                            }
                         }
                     }
                 }
@@ -572,7 +607,7 @@ struct DetailRow: View {
 
 ### Files to Modify
 
-#### 2.5 Refactor `GigHive/Sources/App/UploadView.swift`
+#### 2.8 Refactor `GigHive/Sources/App/UploadView.swift`
 
 - Remove embedded authentication UI; rely on `AuthSession` for `baseURL`, `credentials`, and `allowInsecureTLS`.
 - If `session.credentials == nil`, route user to `LoginView` first.
@@ -581,7 +616,42 @@ struct DetailRow: View {
 
 ---
 
-## Testing Phase 2
+### Architecture
+
+#### In-App Playback
+
+- MediaPlayerView will handle in-app playback for video and audio files.
+- DatabaseDetailView will be updated to use MediaPlayerView for playback instead of opening in browser.
+
+#### Media Proxy (Resource Loader)
+
+- When "Disable Certificate Checking" is enabled, AVPlayer loads media through a proxy that uses our URLSession (with InsecureTrustDelegate) and BasicAuth.
+- Implementation notes:
+  - Custom scheme: convert https://host/path to gighive+https://host/path.
+  - AVAssetResourceLoaderDelegate intercepts requests and forwards them via URLSession.
+  - Adds Authorization header; mirrors Range headers precisely (bytes=offset-end), supports repeated small probes.
+  - Streaming delivery: respond incrementally to AVPlayer using dataRequest.respond(with:) as URLSession delivers data; finish when complete or cancelled.
+  - contentInformationRequest: set isByteRangeAccessSupported, contentLength (from Content-Range/Length), and UTI contentType (derived from MIME or file extension).
+  - Handles cancellation and errors; logs request URL, ranges, HTTP status, and bytes delivered.
+- Files:
+  - `MediaResourceLoader.swift` (delegate + URLSession proxy)
+  - `MediaPlayerView.swift` (creates AVURLAsset with custom scheme and sets loader delegate when bypass is enabled)
+
+##### Testing (Proxy Mode)
+- Play audio/video with cert bypass ON; verify logs show:
+  - Proxy custom URL has host, path
+  - Loader HTTP 206/200 and increasing bytes
+  - Player item status moves to readyToPlay; timeControlStatus to playing
+
+### In-App Playback UX
+
+- Player is presented as a sheet with a NavigationView.
+- A trailing toolbar "Close" button dismisses the sheet (iOS 15-compatible using presentationMode).
+- Swipe to dismiss also works. Close action pauses playback and logs `[Player] Close tapped`.
+
+---
+
+### Testing Phase 2
 
 ### Test Checklist:
 
@@ -629,21 +699,14 @@ struct DetailRow: View {
 
 If issues arise:
 
-### Server-Side Rollback:
-Revert `db/database.php` line 19 to:
-```php
-$response = $controller->list();
-```
-
 ### iOS Rollback:
-Revert `UploadView.swift` lines 331-340 to original code that uses `successURL` and `openURL()`.
+Revert to the previous single-view flow: remove session-based guards and LoginView, restore UploadView’s embedded auth UI and external browser behavior for viewing if needed.
 
 ---
 
 ## Notes
 
-- **Authentication:** Database viewer prompts for read-only credentials at runtime (do not store credentials in the app or source).
-- **Upload credentials:** Remain admin/secretadmin (unchanged; not stored in code).
+- **Authentication:** Credentials are provided by the user at runtime (never stored in source or on device). Viewer creds allow read-only; admin creds required for upload.
 - **Backward Compatibility:** HTML view continues to work at `/db/database.php`
 - **No Breaking Changes:** All existing functionality preserved
 
@@ -651,11 +714,11 @@ Revert `UploadView.swift` lines 331-340 to original code that uses `successURL` 
 
 ## Implementation Order
 
-1. ✅ Phase 1: Server-side JSON API (PHP repository)
-2. ✅ Test Phase 1 endpoints
-3. ✅ Phase 2: iOS native views (GigHive repository)
-4. ✅ Test Phase 2 functionality
-5. ✅ Deploy to production
+1. Implement `AuthSession`, `SplashView`, and `LoginView` (TLS toggle).
+2. Wire navigation guards and intended-route handling.
+3. Refactor `DatabaseView` (Phase 1 JSON) and `UploadView` to use session; keep existing styling.
+4. Execute testing checklist and fix issues.
+5. Deploy to production.
 
 ---
 

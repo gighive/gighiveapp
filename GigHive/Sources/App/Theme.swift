@@ -75,6 +75,7 @@ struct NoAccessoryTextField: UIViewRepresentable {
     var keyboardType: UIKeyboardType = .default
     var autocapitalizationType: UITextAutocapitalizationType = .none
     var autocorrectionType: UITextAutocorrectionType = .no
+    var textContentType: UITextContentType? = nil
     var font: UIFont = .systemFont(ofSize: 13)
     var textColor: UIColor = UIColor(red: 0xe9/255, green: 0xee/255, blue: 0xf7/255, alpha: 1.0)
     var tintColor: UIColor = .green
@@ -86,6 +87,9 @@ struct NoAccessoryTextField: UIViewRepresentable {
         textField.keyboardType = keyboardType
         textField.autocapitalizationType = autocapitalizationType
         textField.autocorrectionType = autocorrectionType
+        if let tct = textContentType {
+            textField.textContentType = tct
+        }
         textField.font = font
         textField.textColor = textColor
         textField.tintColor = tintColor
@@ -136,6 +140,7 @@ struct NoAccessorySecureField: UIViewRepresentable {
     var keyboardType: UIKeyboardType = .default
     var autocapitalizationType: UITextAutocapitalizationType = .none
     var autocorrectionType: UITextAutocorrectionType = .no
+    var textContentType: UITextContentType? = .password
     var font: UIFont = .systemFont(ofSize: 13)
     var textColor: UIColor = UIColor(red: 0xe9/255, green: 0xee/255, blue: 0xf7/255, alpha: 1.0)
     var tintColor: UIColor = .green
@@ -147,6 +152,9 @@ struct NoAccessorySecureField: UIViewRepresentable {
         textField.keyboardType = keyboardType
         textField.autocapitalizationType = autocapitalizationType
         textField.autocorrectionType = autocorrectionType
+        if let tct = textContentType {
+            textField.textContentType = tct
+        }
         textField.font = font
         textField.textColor = textColor
         textField.tintColor = tintColor

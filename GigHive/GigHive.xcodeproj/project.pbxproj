@@ -33,6 +33,18 @@
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
 		D38827C03AABB0678A73D6D6 /* UploadFormView.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */; };
+		D83FF6A32EAE5D470070E029 /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A22EAE5D470070E029 /* AuthSession.swift */; };
+		D83FF6A52EAE5EB60070E029 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A42EAE5EB60070E029 /* SplashView.swift */; };
+		D83FF6A82EAE5FA80070E029 /* TitleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A72EAE5FA80070E029 /* TitleHeaderView.swift */; };
+		D83FF6A92EAE5FA80070E029 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A62EAE5FA80070E029 /* LoginView.swift */; };
+		D83FF6AE2EAE66A10070E029 /* DatabaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AA2EAE66A10070E029 /* DatabaseAPIClient.swift */; };
+		D83FF6AF2EAE66A10070E029 /* DatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AB2EAE66A10070E029 /* DatabaseModels.swift */; };
+		D83FF6B02EAE66A10070E029 /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AC2EAE66A10070E029 /* DatabaseView.swift */; };
+		D83FF6B12EAE66A10070E029 /* ShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AD2EAE66A10070E029 /* ShareHelper.swift */; };
+		D83FF6B32EAE66C50070E029 /* DatabaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B22EAE66C50070E029 /* DatabaseDetailView.swift */; };
+		D83FF6B52EAE6EED0070E029 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B42EAE6EED0070E029 /* KeychainStore.swift */; };
+		D83FF6B72EAE78220070E029 /* MediaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B62EAE78220070E029 /* MediaPlayerView.swift */; };
+		D83FF6B92EAE7F930070E029 /* MediaResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B82EAE7F930070E029 /* MediaResourceLoader.swift */; };
 		FBB6B091D0FC6E74F96E9C4D /* PickerBridges.swift.backup-progress-tracking in Resources */ = {isa = PBXBuildFile; fileRef = EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */; };
 /* End PBXBuildFile section */
 
@@ -70,6 +82,18 @@
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-rename"; sourceTree = "<group>"; };
 		D3055290AEEA5443F286065A /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		D83FF6A22EAE5D470070E029 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
+		D83FF6A42EAE5EB60070E029 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		D83FF6A62EAE5FA80070E029 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		D83FF6A72EAE5FA80070E029 /* TitleHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleHeaderView.swift; sourceTree = "<group>"; };
+		D83FF6AA2EAE66A10070E029 /* DatabaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseAPIClient.swift; sourceTree = "<group>"; };
+		D83FF6AB2EAE66A10070E029 /* DatabaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseModels.swift; sourceTree = "<group>"; };
+		D83FF6AC2EAE66A10070E029 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
+		D83FF6AD2EAE66A10070E029 /* ShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelper.swift; sourceTree = "<group>"; };
+		D83FF6B22EAE66C50070E029 /* DatabaseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDetailView.swift; sourceTree = "<group>"; };
+		D83FF6B42EAE6EED0070E029 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		D83FF6B62EAE78220070E029 /* MediaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerView.swift; sourceTree = "<group>"; };
+		D83FF6B82EAE7F930070E029 /* MediaResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaResourceLoader.swift; sourceTree = "<group>"; };
 		DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = PickerBridges.swift.backup; sourceTree = "<group>"; };
 		DF88B938C5D9B69A7CA8B53A /* UploadClient.swift.backup-before-collapse */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-collapse"; sourceTree = "<group>"; };
 		E2BD80677E697C313615AB9A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -104,6 +128,18 @@
 			children = (
 				D3055290AEEA5443F286065A /* AppConstants.swift */,
 				7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */,
+				D83FF6A42EAE5EB60070E029 /* SplashView.swift */,
+				D83FF6A62EAE5FA80070E029 /* LoginView.swift */,
+				D83FF6AA2EAE66A10070E029 /* DatabaseAPIClient.swift */,
+				D83FF6AB2EAE66A10070E029 /* DatabaseModels.swift */,
+				D83FF6AC2EAE66A10070E029 /* DatabaseView.swift */,
+				D83FF6B62EAE78220070E029 /* MediaPlayerView.swift */,
+				D83FF6B82EAE7F930070E029 /* MediaResourceLoader.swift */,
+				D83FF6B42EAE6EED0070E029 /* KeychainStore.swift */,
+				D83FF6AD2EAE66A10070E029 /* ShareHelper.swift */,
+				D83FF6B22EAE66C50070E029 /* DatabaseDetailView.swift */,
+				D83FF6A72EAE5FA80070E029 /* TitleHeaderView.swift */,
+				D83FF6A22EAE5D470070E029 /* AuthSession.swift */,
 				4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */,
 				839DE2678BD36275271EBF1E /* LoggingUtils.swift */,
 				FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */,
@@ -251,12 +287,24 @@
 				BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */,
 				294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */,
 				48B3AE4EAF1FFBC062A69FB2 /* MultipartInputStream.swift in Sources */,
+				D83FF6AE2EAE66A10070E029 /* DatabaseAPIClient.swift in Sources */,
+				D83FF6AF2EAE66A10070E029 /* DatabaseModels.swift in Sources */,
+				D83FF6B02EAE66A10070E029 /* DatabaseView.swift in Sources */,
+				D83FF6B12EAE66A10070E029 /* ShareHelper.swift in Sources */,
+				D83FF6B72EAE78220070E029 /* MediaPlayerView.swift in Sources */,
 				B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */,
 				39072A6D72CD83CA7DF794CF /* PickerBridges.swift in Sources */,
+				D83FF6B32EAE66C50070E029 /* DatabaseDetailView.swift in Sources */,
 				49009D21E3342CF9C8944C85 /* PresentationDetentsCompat.swift in Sources */,
 				8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */,
+				D83FF6A52EAE5EB60070E029 /* SplashView.swift in Sources */,
 				4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */,
+				D83FF6B92EAE7F930070E029 /* MediaResourceLoader.swift in Sources */,
 				9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */,
+				D83FF6A32EAE5D470070E029 /* AuthSession.swift in Sources */,
+				D83FF6A82EAE5FA80070E029 /* TitleHeaderView.swift in Sources */,
+				D83FF6B52EAE6EED0070E029 /* KeychainStore.swift in Sources */,
+				D83FF6A92EAE5FA80070E029 /* LoginView.swift in Sources */,
 				62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
