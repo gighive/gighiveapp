@@ -59,6 +59,7 @@ struct UploadView: View {
     @State private var currentUploadClient: UploadClient? = nil
     @State private var allowInsecureTLS = false
     @State private var isLoadingMedia = false
+    @State private var cancelPreparingMedia: (() -> Void)? = nil
     @State private var loadedFileSize: String? = nil
     // Ensure loading text is visible for at least a minimum duration
     @State private var mediaLoadingStartedAt: Date? = nil
@@ -211,7 +212,7 @@ struct UploadView: View {
                                 .ghForeground(GHTheme.muted)
                         }
 
-                        Button(isCancelling ? "Cancelling…" : (isUploading ? "Uploading…" : (lastButtonStatus ?? "Upload")), action: {
+                        Button(isCancelling ? "Cancelling…" : (isUploading ? "Uploading…" : (isLoadingMedia ? "Cancel" : (lastButtonStatus ?? "Upload"))), action: {
                             if isUploading {
                                 // Second press: cancel
                                 isCancelling = true
@@ -220,12 +221,28 @@ struct UploadView: View {
                                 
                                 // Also cancel the underlying network upload task
                                 currentUploadClient?.cancelCurrentUpload()
+                            } else if isLoadingMedia {
+                                logWithTimestamp("🛑 [UploadView] Cancel pressed during media preparation")
+                                debugLog.append("cancel pressed during media preparation")
+
+                                if let cancel = cancelPreparingMedia {
+                                    logWithTimestamp("🛑 [UploadView] Invoking cancelPreparingMedia")
+                                    cancel()
+                                } else {
+                                    logWithTimestamp("⚠️ [UploadView] cancelPreparingMedia is nil (no cancel hook installed yet)")
+                                }
+
+                                // Reset UI state immediately; picker layer will also clear selection via selectionHandler(nil)
+                                cancelPreparingMedia = nil
+                                isLoadingMedia = false
+                                photoCopyProgress = nil
+                                mediaLoadingStartedAt = nil
                             } else {
                                 doUpload()
                             }
                         })
                             .buttonStyle(GHButtonStyle(color: lastButtonStatus == "Upload Cancelled" ? .red : GHTheme.accent))
-                            .disabled((!isUploading) && (isLoadingMedia || fileURL == nil || (label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)))
+                            .disabled((!isUploading && !isLoadingMedia) && (fileURL == nil || (label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)))
                             .padding(.top, 2)
 
                         // Validation messages for mandatory fields
@@ -327,6 +344,7 @@ struct UploadView: View {
                     self.loadedFileSize = nil
                     self.fileURL = url
                     self.showPhotosPicker = false
+                    self.cancelPreparingMedia = nil
                     debugLog.append("file selected from Photos")
                 } else {
                     // User cancelled
@@ -334,6 +352,7 @@ struct UploadView: View {
                     self.fileURL = nil
                     self.loadedFileSize = nil
                     self.isLoadingMedia = false
+                    self.cancelPreparingMedia = nil
                     debugLog.append("photos canceled")
                 }
             }, onFileTooLarge: { fileSize, maxSize in
@@ -359,6 +378,13 @@ struct UploadView: View {
             }, onCopyProgress: { progress in
                 // Update progress during copy
                 self.photoCopyProgress = progress
+            }, onCopyCancelAvailable: { cancel in
+                if cancel == nil {
+                    logWithTimestamp("🧹 [UploadView] Received nil cancel hook (clearing)")
+                } else {
+                    logWithTimestamp("🧷 [UploadView] Received cancel hook (installing)")
+                }
+                self.cancelPreparingMedia = cancel
             })
             .modifier(PresentationDetentsCompat())
         }
@@ -494,6 +520,17 @@ struct UploadView: View {
             let maxSize = error.maxSize
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                 logWithTimestamp("🔔 [onChange] Showing alert now")
+                // Ensure we fully clear the selection and preparation state so the user cannot proceed
+                // with an oversize file.
+                self.showPhotosPicker = false
+                self.showFilesPicker = false
+                self.fileURL = nil
+                self.loadedFileSize = nil
+                self.isLoadingMedia = false
+                self.photoCopyProgress = nil
+                self.mediaLoadingStartedAt = nil
+                self.cancelPreparingMedia = nil
+
                 self.alertTitle = "File Too Large"
                 self.alertMessage = "The selected file (\(fileSize)) exceeds the maximum allowed size of \(maxSize).\n\nPlease select a smaller file or compress the video before uploading."
                 self.showResultAlert = true
@@ -586,6 +623,15 @@ struct UploadView: View {
                 debugLog.append("file too large: \(fileSizeText) > \(maxSizeText)")
                 alertTitle = "File Too Large"
                 alertMessage = "The selected file (\(fileSizeText)) exceeds the maximum allowed size of \(maxSizeText).\n\nPlease select a smaller file or compress the video before uploading."
+                // Hard block: clear the selection so the user cannot retry upload without choosing a new file.
+                DispatchQueue.main.async {
+                    self.fileURL = nil
+                    self.loadedFileSize = nil
+                    self.isLoadingMedia = false
+                    self.photoCopyProgress = nil
+                    self.mediaLoadingStartedAt = nil
+                    self.cancelPreparingMedia = nil
+                }
                 showResultAlert = true
                 return
             }
@@ -661,8 +707,10 @@ struct UploadView: View {
                     let fraction = Double(completed) / Double(total)  // Calculate fraction for progress view
                     let bucket = (percent / 2) * 2  // 2% increments for better feedback on slow connections
                     logWithTimestamp("📈 UploadView Progress: \(completed)/\(total) bytes = \(percent)%, bucket=\(bucket), lastBucket=\(lastProgressBucket)")
-                    if bucket >= 2 && bucket > lastProgressBucket {  // Start at 2%
-                        DispatchQueue.main.async {
+                    DispatchQueue.main.async {
+                        // Make the bucket dedupe check atomic on the main thread to avoid duplicate entries
+                        // when progress callbacks arrive concurrently.
+                        if bucket >= 2 && bucket > lastProgressBucket {  // Start at 2%
                             lastProgressBucket = bucket
                             self.uploadProgress = fraction  // Update upload progress state
                             debugLog.append("\(bucket)%..")

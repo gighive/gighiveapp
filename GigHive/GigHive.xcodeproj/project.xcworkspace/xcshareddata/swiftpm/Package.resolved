@@ -1,0 +1,15 @@
+{
+  "originHash" : "ca371ccfd5cfc5f4cbfe4e5b1a0dea7e6226fa3355eccd26a6e4d22244ef34e1",
+  "pins" : [
+    {
+      "identity" : "tuskit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tus/TUSKit",
+      "state" : {
+        "revision" : "52cb37fa0cb46a91d0e384905e64e7556156ef8c",
+        "version" : "3.7.0"
+      }
+    }
+  ],
+  "version" : 3
+}

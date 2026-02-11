@@ -9,6 +9,7 @@ struct PHPickerView: UIViewControllerRepresentable {
     var onFileTooLarge: ((String, String) -> Void)? = nil  // (fileSize, maxSize) -> Void
     var onCopyStarted: (() -> Void)? = nil  // Called when file copy from Photos begins
     var onCopyProgress: ((Double) -> Void)? = nil  // Progress 0.0 to 1.0
+    var onCopyCancelAvailable: (((() -> Void)?) -> Void)? = nil
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -27,6 +28,7 @@ struct PHPickerView: UIViewControllerRepresentable {
         let parent: PHPickerView
         private var progressObservation: NSKeyValueObservation?
         private var progressTimer: Timer?
+        private var didCancelLoad = false
         
         init(_ parent: PHPickerView) { self.parent = parent }
         
@@ -35,6 +37,7 @@ struct PHPickerView: UIViewControllerRepresentable {
             guard let provider = results.first?.itemProvider else { parent.selectionHandler(nil); return }
             let typeId = UTType.movie.identifier
             if provider.hasItemConformingToTypeIdentifier(typeId) {
+                didCancelLoad = false
                 logWithTimestamp("📊 [PHPicker] Getting file size from metadata...")
                 
                 // Try to get expected file size from metadata
@@ -53,9 +56,15 @@ struct PHPickerView: UIViewControllerRepresentable {
                 }
                 
                 logWithTimestamp("🚀 [PHPicker] Calling loadFileRepresentation...")
-                let loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, _ in
+                var loadProgress: Progress? = nil
+                loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, _ in
                     guard let self = self else { return }
-                    logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed")
+
+                    if let loadProgress {
+                        logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed (didCancelLoad=\(self.didCancelLoad), isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                    } else {
+                        logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed (didCancelLoad=\(self.didCancelLoad), loadProgress=nil)")
+                    }
                     
                     // Cleanup progress observation
                     self.progressObservation?.invalidate()
@@ -63,8 +72,20 @@ struct PHPickerView: UIViewControllerRepresentable {
                     self.progressTimer?.invalidate()
                     self.progressTimer = nil
                     logWithTimestamp("🧹 [PHPicker] Cleaned up progress observers")
+
+                    DispatchQueue.main.async {
+                        logWithTimestamp("🧹 [PHPicker] Clearing copy cancel hook")
+                        self.parent.onCopyCancelAvailable?(nil)
+                    }
+
+                    if self.didCancelLoad || (loadProgress?.isCancelled ?? false) {
+                        logWithTimestamp("🛑 [PHPicker] Ignoring load completion because cancel was requested")
+                        DispatchQueue.main.async { self.parent.selectionHandler(nil) }
+                        return
+                    }
                     
                     guard let url = url else {
+                        logWithTimestamp("⚠️ [PHPicker] loadFileRepresentation returned nil url")
                         DispatchQueue.main.async { self.parent.selectionHandler(nil) }
                         return
                     }
@@ -107,9 +128,46 @@ struct PHPickerView: UIViewControllerRepresentable {
                         DispatchQueue.main.async { self.parent.selectionHandler(nil) }
                     }
                 }
+
+                DispatchQueue.main.async {
+                    self.parent.onCopyCancelAvailable?({ [weak self] in
+                        guard let self = self else { return }
+                        self.didCancelLoad = true
+
+                        if let loadProgress {
+                            logWithTimestamp("🛑 [PHPicker] Cancel requested: before cancel (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                            loadProgress.cancel()
+                            logWithTimestamp("🛑 [PHPicker] Cancel requested: after cancel (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                        } else {
+                            logWithTimestamp("🛑 [PHPicker] Cancel requested but loadProgress is nil")
+                        }
+
+                        self.progressObservation?.invalidate()
+                        self.progressObservation = nil
+                        self.progressTimer?.invalidate()
+                        self.progressTimer = nil
+                        DispatchQueue.main.async {
+                            logWithTimestamp("🛑 [PHPicker] Cancel requested: selectionHandler(nil)")
+                            self.parent.selectionHandler(nil)
+                        }
+                    })
+
+                    if let loadProgress {
+                        logWithTimestamp("🧷 [PHPicker] Installing copy cancel hook (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                    } else {
+                        logWithTimestamp("🧷 [PHPicker] Installing copy cancel hook (loadProgress=nil)")
+                    }
+                }
                 
                 // Observe Progress object for updates
                 logWithTimestamp("👀 [PHPicker] Setting up Progress observation...")
+
+                guard let loadProgress else {
+                    logWithTimestamp("⚠️ [PHPicker] loadFileRepresentation returned nil Progress")
+                    DispatchQueue.main.async { self.parent.selectionHandler(nil) }
+                    return
+                }
+
                 logWithTimestamp("📊 [PHPicker] Progress totalUnitCount: \(loadProgress.totalUnitCount) bytes")
                 if loadProgress.totalUnitCount > 0 {
                     let sizeStr = ByteCountFormatter.string(fromByteCount: loadProgress.totalUnitCount, countStyle: .file)

@@ -7,44 +7,47 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */; };
+		076B6EFE3F8621F7B74A514D /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E335CC3B564F898AC4688953 /* DatabaseView.swift */; };
 		102D2148060AC600B8A81D05 /* UploadClient.swift.backup-before-async in Resources */ = {isa = PBXBuildFile; fileRef = B8E6587A14CA31B6FA4DCBED /* UploadClient.swift.backup-before-async */; };
 		13408E015F2FA226DA9FFE59 /* UploadView.swift.backup-progress-tracking in Resources */ = {isa = PBXBuildFile; fileRef = C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */; };
+		149FFB5F82036DA27CB0271B /* TUSKit in Frameworks */ = {isa = PBXBuildFile; productRef = C3C4B189A95EBE757284118F /* TUSKit */; };
+		1C40CEDD43266F915F2B0129 /* UploadView.swift.backup-upload-progress in Resources */ = {isa = PBXBuildFile; fileRef = DF40D9F15525E087DFDD6CE8 /* UploadView.swift.backup-upload-progress */; };
+		21C3F352C8EE6B721E96171E /* MediaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */; };
 		294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839DE2678BD36275271EBF1E /* LoggingUtils.swift */; };
 		29990A45D239EBD1765249AA /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A489F209BDAB477FEC85E098 /* ShareViewController.swift */; };
 		2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3055290AEEA5443F286065A /* AppConstants.swift */; };
 		30806F9F0854B75E1ED49815 /* UploadClient.swift.backup-before-cleanup in Resources */ = {isa = PBXBuildFile; fileRef = 2DDDBD9B60D920A605C7E2B6 /* UploadClient.swift.backup-before-cleanup */; };
 		39072A6D72CD83CA7DF794CF /* PickerBridges.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */; };
 		39FFAAA9AD692677AC80593B /* UploadClient.swift.backup-before-collapse in Resources */ = {isa = PBXBuildFile; fileRef = DF88B938C5D9B69A7CA8B53A /* UploadClient.swift.backup-before-collapse */; };
+		3CF85F5B751987188D075143 /* DatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C2EB7F2D108852520CA7085 /* DatabaseModels.swift */; };
 		48B3AE4EAF1FFBC062A69FB2 /* MultipartInputStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */; };
 		49009D21E3342CF9C8944C85 /* PresentationDetentsCompat.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */; };
 		4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BF8F1B65BA95BB2142AE1C /* Theme.swift */; };
+		4F1ED7510D79C2347D12EE9F /* MediaResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E2D239BDF9110697BA03F /* MediaResourceLoader.swift */; };
 		51702D562443137F74719EA4 /* TUSUploadClient_Clean.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = 789975307D1C982B21DBAB54 /* TUSUploadClient_Clean.swift.backup-deleted */; };
 		57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */; };
+		5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */; };
 		61C7C4B3D9A2FC12B980FD28 /* UploadView.swift.backup in Resources */ = {isa = PBXBuildFile; fileRef = 932683EF87F8F10BF078B881 /* UploadView.swift.backup */; };
 		62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89281475A43AA7EDF94EE3D1 /* UploadView.swift */; };
 		63E67D69EDF78680A4D547C5 /* PickerBridges.swift.backup in Resources */ = {isa = PBXBuildFile; fileRef = DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */; };
 		64B9BEA89E2E8F9C638735B1 /* UploadClient.swift.backup-continuation-fix in Resources */ = {isa = PBXBuildFile; fileRef = AEA4D01BFA331597672F5E36 /* UploadClient.swift.backup-continuation-fix */; };
+		6B9A720746569E11A7E84C24 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCB48CD79DA5D49B822B427D /* KeychainStore.swift */; };
 		7B7A151893906ED290ACD30B /* UploadView.swift.backup-progress-fix in Resources */ = {isa = PBXBuildFile; fileRef = 97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */; };
+		7E2C41359EB2A9174A2F89FB /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D7BFF9A60ECBDEB20D8D8D8 /* LoginView.swift */; };
 		7FDEE6B59BCB1AABECEC3596 /* NetworkProgressUploadClient.swift.backup-before-async in Resources */ = {isa = PBXBuildFile; fileRef = FCF3780E4EC3FBA497EC4A18 /* NetworkProgressUploadClient.swift.backup-before-async */; };
 		8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */; };
 		8D5621F2D4ACCB41732843A2 /* UploadClient.swift.backup-before-rename in Resources */ = {isa = PBXBuildFile; fileRef = D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */; };
+		976BF94829F092409E37B53E /* ShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB29F566070702C9A630820E /* ShareHelper.swift */; };
 		9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782A5D354995ABF69E0D106 /* UploadClient.swift */; };
 		B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */; };
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
+		C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */; };
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
 		D38827C03AABB0678A73D6D6 /* UploadFormView.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */; };
-		D83FF6A32EAE5D470070E029 /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A22EAE5D470070E029 /* AuthSession.swift */; };
-		D83FF6A52EAE5EB60070E029 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A42EAE5EB60070E029 /* SplashView.swift */; };
-		D83FF6A82EAE5FA80070E029 /* TitleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A72EAE5FA80070E029 /* TitleHeaderView.swift */; };
-		D83FF6A92EAE5FA80070E029 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6A62EAE5FA80070E029 /* LoginView.swift */; };
-		D83FF6AE2EAE66A10070E029 /* DatabaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AA2EAE66A10070E029 /* DatabaseAPIClient.swift */; };
-		D83FF6AF2EAE66A10070E029 /* DatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AB2EAE66A10070E029 /* DatabaseModels.swift */; };
-		D83FF6B02EAE66A10070E029 /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AC2EAE66A10070E029 /* DatabaseView.swift */; };
-		D83FF6B12EAE66A10070E029 /* ShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6AD2EAE66A10070E029 /* ShareHelper.swift */; };
-		D83FF6B32EAE66C50070E029 /* DatabaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B22EAE66C50070E029 /* DatabaseDetailView.swift */; };
-		D83FF6B52EAE6EED0070E029 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B42EAE6EED0070E029 /* KeychainStore.swift */; };
-		D83FF6B72EAE78220070E029 /* MediaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B62EAE78220070E029 /* MediaPlayerView.swift */; };
-		D83FF6B92EAE7F930070E029 /* MediaResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83FF6B82EAE7F930070E029 /* MediaResourceLoader.swift */; };
+		DE2E22F117C7982666FF1CC1 /* TitleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15373040C6F22CB5C17F42D3 /* TitleHeaderView.swift */; };
+		EA4820199948EC30E4B358D9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2F3075629A234B4E841E5B7 /* SplashView.swift */; };
+		ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */; };
 		FBB6B091D0FC6E74F96E9C4D /* PickerBridges.swift.backup-progress-tracking in Resources */ = {isa = PBXBuildFile; fileRef = EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */; };
 /* End PBXBuildFile section */
 
@@ -60,12 +63,18 @@
 
 /* Begin PBXFileReference section */
 		04BF8F1B65BA95BB2142AE1C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		0D7BFF9A60ECBDEB20D8D8D8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		15373040C6F22CB5C17F42D3 /* TitleHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleHeaderView.swift; sourceTree = "<group>"; };
+		1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TUSUploadClient.swift; sourceTree = "<group>"; };
 		2782A5D354995ABF69E0D106 /* UploadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadClient.swift; sourceTree = "<group>"; };
 		27B7D8F789D32F70CA4F3E6F /* GigHive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GigHive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2DDDBD9B60D920A605C7E2B6 /* UploadClient.swift.backup-before-cleanup */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-cleanup"; sourceTree = "<group>"; };
+		3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseAPIClient.swift; sourceTree = "<group>"; };
 		4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
-		593FA484CF10D70E6F624D69 /* GigHiveShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = GigHiveShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A1E2D239BDF9110697BA03F /* MediaResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaResourceLoader.swift; sourceTree = "<group>"; };
+		593FA484CF10D70E6F624D69 /* GigHiveShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GigHiveShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProgressUploadClient.swift; sourceTree = "<group>"; };
+		5C2EB7F2D108852520CA7085 /* DatabaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseModels.swift; sourceTree = "<group>"; };
 		789975307D1C982B21DBAB54 /* TUSUploadClient_Clean.swift.backup-deleted */ = {isa = PBXFileReference; lastKnownFileType = text; path = "TUSUploadClient_Clean.swift.backup-deleted"; sourceTree = "<group>"; };
 		7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GigHiveApp.swift; sourceTree = "<group>"; };
 		839DE2678BD36275271EBF1E /* LoggingUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggingUtils.swift; sourceTree = "<group>"; };
@@ -73,35 +82,42 @@
 		8BB812D531E316E19AC8653E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		932683EF87F8F10BF078B881 /* UploadView.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = UploadView.swift.backup; sourceTree = "<group>"; };
 		97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadView.swift.backup-progress-fix"; sourceTree = "<group>"; };
+		A2F3075629A234B4E841E5B7 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		A489F209BDAB477FEC85E098 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationDetentsCompat.swift; sourceTree = "<group>"; };
 		AEA4D01BFA331597672F5E36 /* UploadClient.swift.backup-continuation-fix */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-continuation-fix"; sourceTree = "<group>"; };
 		B8E6587A14CA31B6FA4DCBED /* UploadClient.swift.backup-before-async */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-async"; sourceTree = "<group>"; };
+		BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerView.swift; sourceTree = "<group>"; };
 		C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadView.swift.backup-progress-tracking"; sourceTree = "<group>"; };
 		CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerBridges.swift; sourceTree = "<group>"; };
+		CB29F566070702C9A630820E /* ShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelper.swift; sourceTree = "<group>"; };
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-rename"; sourceTree = "<group>"; };
 		D3055290AEEA5443F286065A /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
-		D83FF6A22EAE5D470070E029 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
-		D83FF6A42EAE5EB60070E029 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
-		D83FF6A62EAE5FA80070E029 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		D83FF6A72EAE5FA80070E029 /* TitleHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleHeaderView.swift; sourceTree = "<group>"; };
-		D83FF6AA2EAE66A10070E029 /* DatabaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseAPIClient.swift; sourceTree = "<group>"; };
-		D83FF6AB2EAE66A10070E029 /* DatabaseModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseModels.swift; sourceTree = "<group>"; };
-		D83FF6AC2EAE66A10070E029 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
-		D83FF6AD2EAE66A10070E029 /* ShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelper.swift; sourceTree = "<group>"; };
-		D83FF6B22EAE66C50070E029 /* DatabaseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDetailView.swift; sourceTree = "<group>"; };
-		D83FF6B42EAE6EED0070E029 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
-		D83FF6B62EAE78220070E029 /* MediaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerView.swift; sourceTree = "<group>"; };
-		D83FF6B82EAE7F930070E029 /* MediaResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaResourceLoader.swift; sourceTree = "<group>"; };
+		DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = PickerBridges.swift.backup; sourceTree = "<group>"; };
+		DCB48CD79DA5D49B822B427D /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		DF40D9F15525E087DFDD6CE8 /* UploadView.swift.backup-upload-progress */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadView.swift.backup-upload-progress"; sourceTree = "<group>"; };
 		DF88B938C5D9B69A7CA8B53A /* UploadClient.swift.backup-before-collapse */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-collapse"; sourceTree = "<group>"; };
 		E2BD80677E697C313615AB9A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E335CC3B564F898AC4688953 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
+		E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDetailView.swift; sourceTree = "<group>"; };
 		EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */ = {isa = PBXFileReference; lastKnownFileType = text; path = "PickerBridges.swift.backup-progress-tracking"; sourceTree = "<group>"; };
 		F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadFormView.swift.backup-deleted"; sourceTree = "<group>"; };
 		FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
 		FCF3780E4EC3FBA497EC4A18 /* NetworkProgressUploadClient.swift.backup-before-async */ = {isa = PBXFileReference; lastKnownFileType = text; path = "NetworkProgressUploadClient.swift.backup-before-async"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7093A4C3810E6EFEB3BD856C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				149FFB5F82036DA27CB0271B /* TUSKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		006D390D9432D9646FE3E766 /* Products */ = {
@@ -127,21 +143,18 @@
 			isa = PBXGroup;
 			children = (
 				D3055290AEEA5443F286065A /* AppConstants.swift */,
+				DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */,
+				3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */,
+				E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */,
+				5C2EB7F2D108852520CA7085 /* DatabaseModels.swift */,
+				E335CC3B564F898AC4688953 /* DatabaseView.swift */,
 				7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */,
-				D83FF6A42EAE5EB60070E029 /* SplashView.swift */,
-				D83FF6A62EAE5FA80070E029 /* LoginView.swift */,
-				D83FF6AA2EAE66A10070E029 /* DatabaseAPIClient.swift */,
-				D83FF6AB2EAE66A10070E029 /* DatabaseModels.swift */,
-				D83FF6AC2EAE66A10070E029 /* DatabaseView.swift */,
-				D83FF6B62EAE78220070E029 /* MediaPlayerView.swift */,
-				D83FF6B82EAE7F930070E029 /* MediaResourceLoader.swift */,
-				D83FF6B42EAE6EED0070E029 /* KeychainStore.swift */,
-				D83FF6AD2EAE66A10070E029 /* ShareHelper.swift */,
-				D83FF6B22EAE66C50070E029 /* DatabaseDetailView.swift */,
-				D83FF6A72EAE5FA80070E029 /* TitleHeaderView.swift */,
-				D83FF6A22EAE5D470070E029 /* AuthSession.swift */,
+				DCB48CD79DA5D49B822B427D /* KeychainStore.swift */,
 				4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */,
 				839DE2678BD36275271EBF1E /* LoggingUtils.swift */,
+				0D7BFF9A60ECBDEB20D8D8D8 /* LoginView.swift */,
+				BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */,
+				4A1E2D239BDF9110697BA03F /* MediaResourceLoader.swift */,
 				FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */,
 				5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */,
 				FCF3780E4EC3FBA497EC4A18 /* NetworkProgressUploadClient.swift.backup-before-async */,
@@ -150,8 +163,12 @@
 				EAC46C96B7E743E552290753 /* PickerBridges.swift.backup-progress-tracking */,
 				AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */,
 				D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */,
+				CB29F566070702C9A630820E /* ShareHelper.swift */,
+				A2F3075629A234B4E841E5B7 /* SplashView.swift */,
 				04BF8F1B65BA95BB2142AE1C /* Theme.swift */,
+				15373040C6F22CB5C17F42D3 /* TitleHeaderView.swift */,
 				789975307D1C982B21DBAB54 /* TUSUploadClient_Clean.swift.backup-deleted */,
+				1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */,
 				2782A5D354995ABF69E0D106 /* UploadClient.swift */,
 				B8E6587A14CA31B6FA4DCBED /* UploadClient.swift.backup-before-async */,
 				2DDDBD9B60D920A605C7E2B6 /* UploadClient.swift.backup-before-cleanup */,
@@ -163,6 +180,7 @@
 				932683EF87F8F10BF078B881 /* UploadView.swift.backup */,
 				97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */,
 				C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */,
+				DF40D9F15525E087DFDD6CE8 /* UploadView.swift.backup-upload-progress */,
 			);
 			name = App;
 			path = Sources/App;
@@ -205,6 +223,7 @@
 			buildPhases = (
 				386E489EE2361D4139D45B72 /* Sources */,
 				41BEDD4C3C017AB9244301F1 /* Resources */,
+				7093A4C3810E6EFEB3BD856C /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -212,6 +231,7 @@
 			);
 			name = GigHive;
 			packageProductDependencies = (
+				C3C4B189A95EBE757284118F /* TUSKit */,
 			);
 			productName = GigHive;
 			productReference = 27B7D8F789D32F70CA4F3E6F /* GigHive.app */;
@@ -244,6 +264,9 @@
 			);
 			mainGroup = EF3F9E81C200EBB9D290A609;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				509A16C3934FB9B081F41B20 /* XCRemoteSwiftPackageReference "TUSKit" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -273,6 +296,7 @@
 				61C7C4B3D9A2FC12B980FD28 /* UploadView.swift.backup in Resources */,
 				7B7A151893906ED290ACD30B /* UploadView.swift.backup-progress-fix in Resources */,
 				13408E015F2FA226DA9FFE59 /* UploadView.swift.backup-progress-tracking in Resources */,
+				1C40CEDD43266F915F2B0129 /* UploadView.swift.backup-upload-progress in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,27 +308,28 @@
 			buildActionMask = 2147483647;
 			files = (
 				2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */,
+				5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */,
+				00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */,
+				C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */,
+				3CF85F5B751987188D075143 /* DatabaseModels.swift in Sources */,
+				076B6EFE3F8621F7B74A514D /* DatabaseView.swift in Sources */,
 				BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */,
+				6B9A720746569E11A7E84C24 /* KeychainStore.swift in Sources */,
 				294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */,
+				7E2C41359EB2A9174A2F89FB /* LoginView.swift in Sources */,
+				21C3F352C8EE6B721E96171E /* MediaPlayerView.swift in Sources */,
+				4F1ED7510D79C2347D12EE9F /* MediaResourceLoader.swift in Sources */,
 				48B3AE4EAF1FFBC062A69FB2 /* MultipartInputStream.swift in Sources */,
-				D83FF6AE2EAE66A10070E029 /* DatabaseAPIClient.swift in Sources */,
-				D83FF6AF2EAE66A10070E029 /* DatabaseModels.swift in Sources */,
-				D83FF6B02EAE66A10070E029 /* DatabaseView.swift in Sources */,
-				D83FF6B12EAE66A10070E029 /* ShareHelper.swift in Sources */,
-				D83FF6B72EAE78220070E029 /* MediaPlayerView.swift in Sources */,
 				B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */,
 				39072A6D72CD83CA7DF794CF /* PickerBridges.swift in Sources */,
-				D83FF6B32EAE66C50070E029 /* DatabaseDetailView.swift in Sources */,
 				49009D21E3342CF9C8944C85 /* PresentationDetentsCompat.swift in Sources */,
 				8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */,
-				D83FF6A52EAE5EB60070E029 /* SplashView.swift in Sources */,
+				976BF94829F092409E37B53E /* ShareHelper.swift in Sources */,
+				EA4820199948EC30E4B358D9 /* SplashView.swift in Sources */,
+				ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */,
 				4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */,
-				D83FF6B92EAE7F930070E029 /* MediaResourceLoader.swift in Sources */,
+				DE2E22F117C7982666FF1CC1 /* TitleHeaderView.swift in Sources */,
 				9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */,
-				D83FF6A32EAE5D470070E029 /* AuthSession.swift in Sources */,
-				D83FF6A82EAE5FA80070E029 /* TitleHeaderView.swift in Sources */,
-				D83FF6B52EAE6EED0070E029 /* KeychainStore.swift in Sources */,
-				D83FF6A92EAE5FA80070E029 /* LoginView.swift in Sources */,
 				62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -333,6 +358,8 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHiveShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Sources/ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -340,6 +367,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive.Share;
 				PRODUCT_NAME = GigHiveShare;
 				SDKROOT = iphoneos;
@@ -355,15 +383,16 @@
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHive.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
+				MARKETING_VERSION = 1.0.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -501,6 +530,8 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHiveShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Sources/ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -508,6 +539,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive.Share;
 				PRODUCT_NAME = GigHiveShare;
 				SDKROOT = iphoneos;
@@ -523,15 +555,16 @@
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHive.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.video";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
+				MARKETING_VERSION = 1.0.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
@@ -570,6 +603,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		509A16C3934FB9B081F41B20 /* XCRemoteSwiftPackageReference "TUSKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tus/TUSKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C3C4B189A95EBE757284118F /* TUSKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 509A16C3934FB9B081F41B20 /* XCRemoteSwiftPackageReference "TUSKit" */;
+			productName = TUSKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B1F9BEB8D7FA8DB70FEC59A3 /* Project object */;
 }

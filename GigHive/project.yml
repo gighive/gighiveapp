@@ -3,11 +3,10 @@ options:
   minimumXcodeGenVersion: 2.38.0
   deploymentTarget:
     iOS: "14.0"
-# packages:
-  # TUSKit:
-  #   url: https://github.com/tus/TUSKit
-  #   from: 3.0.0
-  # Note: Using custom NetworkProgressUploadClient instead
+packages:
+  TUSKit:
+    url: https://github.com/tus/TUSKit
+    from: 3.0.0
 configs:
   Debug: debug
   Release: release
@@ -46,9 +45,8 @@ targets:
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     entitlements:
       path: Configs/GigHive.entitlements
-    # dependencies:
-      # - package: TUSKit
-      # Note: Using custom NetworkProgressUploadClient instead
+    dependencies:
+      - package: TUSKit
     scheme:
       testTargets: []
   GigHiveShare:
