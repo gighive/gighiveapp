@@ -1,0 +1,37 @@
+***
+202602013: Add remaining files (changelog, etc) to repo
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   .gitignore
+	new file:   APPLE_GUIDELINES_ANALYSIS.md
+	new file:   APP_TERMS_OF_SERVICE.md
+	new file:   CHANGELOG.txt
+	modified:   FOUR_PAGE_REARCHITECTURE.md
+	deleted:    GigHive/CHANGELOG.txt
+
+***
+202602011: Cancel the preparing the upload/upload change
+
+macbook2025:GigHive sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	new file:   CHANGELOG.txt
+	modified:   Configs/AppInfo.plist
+	modified:   GigHive.xcodeproj/project.pbxproj
+	new file:   GigHive.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+	modified:   Sources/App/PickerBridges.swift
+	new file:   Sources/App/TUSUploadClient.swift
+	modified:   Sources/App/UploadClient.swift
+	modified:   Sources/App/UploadView.swift
+	modified:   Sources/ShareExtension/Info.plist
+	new file:   docker
+	new file:   docs
+	modified:   project.yml

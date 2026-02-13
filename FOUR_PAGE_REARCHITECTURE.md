@@ -38,17 +38,19 @@ Convert the "View in Database" button from opening external browser to displayin
 ### Goal
 Create native SwiftUI views to display database contents using the new JSON API.
 
-### Architecture and Navigation (Updated)
+### Architecture and Navigation (Implemented)
 
 - **Views:** SplashView, LoginView, View Database, Upload.
 - **SplashView:** Reuses the existing title heading format (bee logo + brand font/style) used on the current page. Shows three buttons: View the Database, Upload a File, Login.
-- **Auth Flow:** Tapping View/Upload when not authenticated routes to Login first; after successful login, the user is routed to the intended destination.
-- **Session:** In-memory session holds `baseURL`, `credentials`, `allowInsecureTLS`, and a derived `role` (viewer/admin). No persistence to disk.
+- **Auth Flow:**
+  - Upload: When not authenticated, tapping Upload routes to Login; after successful login, the app auto-navigates to Upload.
+  - View Database: When not authenticated, tapping View routes to Login; after login, return to Splash and tap View Database again to proceed (auto-navigation for DB is not enabled).
+- **Session:** In-memory session holds `baseURL`, `credentials`, `allowInsecureTLS`, and a derived `role` (viewer/admin). Optional "Remember on this device" persists credentials in Keychain per host.
 - **Permissions:** Viewer can view database; admin can upload. If a viewer attempts upload, show guidance to re-login as admin.
  - **UI Consistency:** Reuse existing look and feel across all views (bee logo title header, fonts, colors, button styles like `GHButtonStyle`).
  - **Deployment Target:** iPhone 12 baseline (iOS 15+). Use iOS 15-compatible APIs with availability checks and fallbacks.
  - **Auth Enhancements:** Lightweight server validation on Sign In (calls JSON endpoint); optional device-only "Remember on this device" via Keychain per host.
- - **In-App Playback:** Play audio/video inside the app using AVPlayer/VideoPlayer with BasicAuth headers; keep Share as-is. Note TLS/ATS caveat for AVPlayer.
+ - **In-App Playback:** Play audio/video inside the app using AVPlayer/VideoPlayer with BasicAuth headers; keep Share as-is. Note TLS/ATS caveat for AVPlayer. Implemented via `MediaPlayerView`.
   - UX: Player sheet includes a visible Close button in the navigation bar.
 
 ### UI Messaging and Error Styling
@@ -121,14 +123,14 @@ Create native SwiftUI views to display database contents using the new JSON API.
   - <span style="color:#0a0">NEW</span> models and `DatabaseAPIClient`.
   - <span style="color:#0a0">NEW</span> `DatabaseView`, <span style="color:#0a0">NEW</span> `DatabaseDetailView`; refactor `UploadView`.
 
-### Platform Compatibility (iPhone 12 baseline)
+### Platform Compatibility
 
-- **Minimum iOS**: Target iOS 15+ (iPhone 12 supports this). All planned APIs are available on iOS 15 except ShareLink and NavigationStack.
-- **Navigation**: Use `NavigationStack` on iOS 16+, fall back to `NavigationView` on iOS 15 (already reflected in `GigHiveApp`).
-- **Search/Refresh**: `.searchable` and `.refreshable` require iOS 15+ (OK).
-- **Dismiss**: `@Environment(\.dismiss)` requires iOS 15+ (OK).
-- **Share**: `ShareLink` is iOS 16+. Provide an iOS 15 fallback share button using a small helper that presents `UIActivityViewController`.
-- **TLS**: Insecure TLS delegate usage is unaffected by iOS 15+ baseline.
+- **Minimum iOS**: iOS 14+ supported. New features degrade gracefully.
+- **Navigation**: `NavigationStack` on iOS 16+, fallback to `NavigationView` on earlier iOS.
+- **Search/Refresh**: `.searchable`/`.refreshable` used on iOS 15+; iOS 14 uses a manual search TextField.
+- **Dismiss**: `@Environment(\.dismiss)` on iOS 15+; compatible approaches used on earlier iOS.
+- **Share**: `ShareLink` on iOS 16+, with a `UIActivityViewController` fallback helper.
+- **TLS**: Insecure TLS delegate available regardless of iOS version when enabled by user.
 
 ### Phased Implementation
 
@@ -229,7 +231,7 @@ struct LoginView: View {
         VStack(spacing: 16) {
             TitleHeaderView()
 
-            TextField("Base URL (e.g., https://dev.gighive.app)", text: $base)
+            TextField("Base URL (e.g., https://staging.gighive.app)", text: $base)
                 .textContentType(.URL)
                 .keyboardType(.URL)
                 .autocapitalization(.none)
@@ -445,13 +447,6 @@ struct DatabaseView: View {
             }
             .navigationTitle("Media Database")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
             .task {
                 await loadData()
             }
@@ -553,15 +548,14 @@ struct DatabaseDetailView: View {
             
             Section {
                 Button(action: {
-                    if let url = URL(string: entry.url, relativeTo: baseURL) {
-                        openURL(url)
-                    }
+                    // In-app playback via MediaPlayerView
+                    // See In-App Playback section
                 }) {
                     HStack {
                         Image(systemName: entry.fileType == "video" ? "play.circle.fill" : "music.note")
                         Text(entry.fileType == "video" ? "Play Video" : "Play Audio")
                         Spacer()
-                        Image(systemName: "arrow.up.right.square")
+                        Image(systemName: "play.rectangle")
                     }
                 }
                 
@@ -610,8 +604,8 @@ struct DetailRow: View {
 #### 2.8 Refactor `GigHive/Sources/App/UploadView.swift`
 
 - Remove embedded authentication UI; rely on `AuthSession` for `baseURL`, `credentials`, and `allowInsecureTLS`.
-- If `session.credentials == nil`, route user to `LoginView` first.
-- On upload attempt with viewer credentials, show clear message: "Upload requires admin credentials. Please re-login as admin." Provide a button to open `LoginView` with intent `.upload`.
+- If unauthenticated, Upload shows an inline alert prompting the user to login (navigation to Login is initiated from Splash).
+- On 401/403, show clear message: "You do not have permission to upload… re-login as admin or uploader."
 - Keep existing look and feel (including header/title styles and `GHButtonStyle`).
 
 ---
@@ -620,14 +614,14 @@ struct DetailRow: View {
 
 #### In-App Playback
 
-- MediaPlayerView will handle in-app playback for video and audio files.
-- DatabaseDetailView will be updated to use MediaPlayerView for playback instead of opening in browser.
+- `MediaPlayerView` handles in-app playback for video and audio files.
+- `DatabaseDetailView` uses `MediaPlayerView` for playback (no external browser).
 
 #### Media Proxy (Resource Loader)
 
 - When "Disable Certificate Checking" is enabled, AVPlayer loads media through a proxy that uses our URLSession (with InsecureTrustDelegate) and BasicAuth.
 - Implementation notes:
-  - Custom scheme: convert https://host/path to gighive+https://host/path.
+  - Custom scheme: convert https://host/path to gighive://host/path.
   - AVAssetResourceLoaderDelegate intercepts requests and forwards them via URLSession.
   - Adds Authorization header; mirrors Range headers precisely (bytes=offset-end), supports repeated small probes.
   - Streaming delivery: respond incrementally to AVPlayer using dataRequest.respond(with:) as URLSession delivers data; finish when complete or cancelled.
@@ -658,7 +652,8 @@ struct DetailRow: View {
 1. **Splash & Navigation:**
    - [ ] Splash header matches existing title/bee logo/branding
    - [ ] Three buttons visible: View Database, Upload a File, Login
-   - [ ] Tapping View/Upload when not logged in routes to Login, then returns to intended destination after successful login
+   - [ ] Upload: When not logged in, routes to Login, then auto-opens Upload on success
+   - [ ] View Database: When not logged in, routes to Login, then returns to Splash; user taps View Database again
 2. **Login:**
    - [ ] Base URL, Username, Password fields work
    - [ ] Disable certificate checking toggle affects all network calls
@@ -677,7 +672,7 @@ struct DetailRow: View {
 5. **Detail View:**
    - [ ] Tapping entry opens detail view
    - [ ] All metadata displays correctly
-   - [ ] "Play Video/Audio" button opens media in browser
+   - [ ] "Play Video/Audio" plays media in-app (MediaPlayerView)
    - [ ] Share button works
 
 6. **Error Handling:**
@@ -731,3 +726,41 @@ If you encounter any issues during implementation, check:
 3. URL construction in `DatabaseAPIClient` is correct
 4. All new files are added to Xcode project
 5. Import statements are correct
+
+
+---
+
+## If We Drop iOS 14 Support (Future Enhancements)
+
+Keep current minimal iOS 14 fallbacks for now. If/when we raise the deployment target to iOS 15+, we can simplify code and polish UX:
+
+- **Navigation**
+  - Remove `NavigationView` branches; standardize on iOS 15+ APIs (and `NavigationStack` on iOS 16+).
+  - Replace `presentationMode` usages with `@Environment(\.dismiss)` everywhere.
+
+- **DatabaseView**
+  - Remove the manual TextField search fallback; use `.searchable` universally.
+  - Use `.refreshable` universally and drop any iOS 14 “Refresh” button fallback.
+
+- **Share & Dismiss**
+  - Prefer `ShareLink` and keep `ShareHelper` only for non-ShareLink contexts, or remove fallback where appropriate.
+
+- **Theming & Modifiers**
+  - Simplify compatibility helpers in `Theme.swift` (use `.foregroundStyle`, `.tint`, and `.background(.ultraThinMaterial)` without fallbacks).
+  - Remove `gh*` conditional wrappers that exist solely for iOS 14.
+
+- **Cleanup iOS 14 Branches in Views**
+  - Remove any `#unavailable(iOS 15)` or `#available` branches that only serve iOS 14.
+  - Re-test UI on iOS 15/16 to confirm no regressions.
+
+- **Optional (if later adopting iOS 16+ as baseline)**
+  - Standardize on `NavigationStack` and path-based navigation/deep linking.
+  - Use `ShareLink` everywhere and consider `PhotosPicker`/newer media APIs where beneficial.
+
+### Proposed Steps (when we decide to drop iOS 14)
+
+1. Raise deployment target to iOS 15 in project settings.
+2. Remove iOS 14 branches in `DatabaseView`, `LoginView`, `MediaPlayerView`, and shared modifiers.
+3. Simplify `Theme.swift` by removing compatibility code paths not needed on iOS 15+.
+4. Retest features: search, refresh, playback, share, navigation, and upload on iOS 15/16.
+5. Update this document to reflect iOS 15+ only.
