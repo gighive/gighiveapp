@@ -1,4 +1,17 @@
 ***
+202602013: Fix sonarcloud yml
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   .github/workflows/sonarcloud.yml
+	modified:   .gitignore
+	modified:   CHANGELOG.txt
+
+***
 202602013: Add remaining files (changelog, etc) to repo
 
 macbook2025:gighiveapp sodo$ git status

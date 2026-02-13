@@ -10,5 +10,3 @@ build/
 # ignore temp doc directory
 gighiveinfra/
 
-# ignore sonarcloud
-.github/workflows/sonar*
