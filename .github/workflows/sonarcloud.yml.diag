@@ -19,6 +19,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Diagnostics
+        run: |
+          echo "PWD=$(pwd)"
+          echo "SHA=$GITHUB_SHA"
+          echo "REF=$GITHUB_REF"
+          ls -la
+          echo "---- GigHive dir ----"
+          ls -la GigHive || true
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
@@ -27,5 +36,6 @@ jobs:
         with:
           projectBaseDir: GigHive
           args: >
+            -X
             -Dsonar.organization=gighive
             -Dsonar.projectKey=gighive_gighiveapp

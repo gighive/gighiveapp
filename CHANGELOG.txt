@@ -1,4 +1,7 @@
 ***
+202602013: Clean sonarcloud yml 
+
+***
 202602013: Fix sonarcloud yml (it was v5 sec hole + auto'd analysis running simultaneously)
 
 macbook2025:gighiveapp sodo$ git status
