@@ -67,6 +67,41 @@ struct UploadView: View {
     @State private var pendingFileSizeError: FileSizeError? = nil
     @State private var photoCopyProgress: Double? = nil  // 0.0 to 1.0 for Photos copy progress
     @State private var uploadProgress: Double? = nil  // 0.0 to 1.0 for upload progress
+    @State private var myUploadsOnDevice: [UploadedFileTokenEntry] = []
+    @State private var pendingDeleteEntry: UploadedFileTokenEntry? = nil
+    @State private var showDeleteConfirm: Bool = false
+    @State private var invalidTokenEntry: UploadedFileTokenEntry? = nil
+    @State private var showInvalidTokenPrompt: Bool = false
+    @State private var deleteErrorMessage: String? = nil
+    @State private var showDeleteErrorAlert: Bool = false
+
+    private struct FinalizeResponse: Codable {
+        let id: Int
+        let fileName: String?
+        let fileType: String?
+        let mimeType: String?
+        let sizeBytes: Int?
+        let checksumSha256: String?
+        let eventDate: String?
+        let orgName: String?
+        let eventType: String?
+        let label: String?
+        let deleteToken: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case fileName = "file_name"
+            case fileType = "file_type"
+            case mimeType = "mime_type"
+            case sizeBytes = "size_bytes"
+            case checksumSha256 = "checksum_sha256"
+            case eventDate = "event_date"
+            case orgName = "org_name"
+            case eventType = "event_type"
+            case label
+            case deleteToken = "delete_token"
+        }
+    }
 
     let onUpload: (UploadPayload) -> Void
     @Environment(\.openURL) private var openURL
@@ -312,6 +347,65 @@ struct UploadView: View {
 
                         // Cert-bypass is controlled globally via session; no toggle here.
 
+                        GHCard(pad: 8) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("My uploads from this device")
+                                    .font(.title3)
+                                    .bold()
+                                    .ghForeground(GHTheme.text)
+
+                                if myUploadsOnDevice.isEmpty {
+                                    Text("No uploads from this device yet.")
+                                        .font(.footnote)
+                                        .ghForeground(GHTheme.muted)
+                                } else {
+                                    Text("These entries exist because this device saved a delete token at upload time.")
+                                        .font(.footnote)
+                                        .ghForeground(GHTheme.muted)
+
+                                    ForEach(myUploadsOnDevice) { entry in
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            if !entry.eventDate.isEmpty {
+                                                Text(entry.eventDate)
+                                                    .font(.caption)
+                                                    .ghForeground(GHTheme.muted)
+                                            }
+
+                                            if !entry.orgName.isEmpty {
+                                                Text(entry.orgName)
+                                                    .font(.headline)
+                                                    .ghForeground(GHTheme.text)
+                                            }
+
+                                            HStack(alignment: .firstTextBaseline) {
+                                                if let label = entry.label, !label.isEmpty {
+                                                    Text(label)
+                                                        .font(.subheadline)
+                                                        .ghForeground(GHTheme.muted)
+                                                } else if let fileName = entry.fileName, !fileName.isEmpty {
+                                                    Text(fileName)
+                                                        .font(.subheadline)
+                                                        .ghForeground(GHTheme.muted)
+                                                }
+                                                Spacer()
+                                                Text("File ID \(entry.fileId)")
+                                                    .font(.caption2)
+                                                    .ghForeground(GHTheme.muted)
+                                            }
+
+                                            Button("Delete") {
+                                                logWithTimestamp("[UploadView] Delete tapped file_id=\(entry.fileId)")
+                                                pendingDeleteEntry = entry
+                                                showDeleteConfirm = true
+                                            }
+                                            .buttonStyle(GHButtonStyle(color: .red))
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                }
+                            }
+                        }
+
                         Button(action: hideKeyboard) {
                             Text("Hide Keyboard").font(.caption)
                         }
@@ -554,6 +648,94 @@ struct UploadView: View {
             eventType = storedEventType
             // Sync TLS toggle from shared session (authority for cert-bypass)
             allowInsecureTLS = session.allowInsecureTLS
+            reloadMyUploadsOnDevice()
+        }
+        .sheet(isPresented: $showDeleteConfirm) {
+            ZStack {
+                GHTheme.bg.ignoresSafeArea()
+                VStack {
+                    Spacer()
+                    GHCard(pad: 14) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Delete this upload?")
+                                .font(.headline)
+                                .ghForeground(GHTheme.text)
+                            Text("This will delete the uploaded file from the server.")
+                                .font(.subheadline)
+                                .ghForeground(GHTheme.muted)
+
+                            HStack {
+                                Button("Cancel") {
+                                    logWithTimestamp("[UploadView] Delete confirm cancelled")
+                                    showDeleteConfirm = false
+                                }
+                                .buttonStyle(GHButtonStyle(color: .gray))
+
+                                Button("Delete") {
+                                    guard let entry = pendingDeleteEntry else {
+                                        logWithTimestamp("[UploadView] Delete confirm missing pendingDeleteEntry")
+                                        showDeleteConfirm = false
+                                        return
+                                    }
+                                    logWithTimestamp("[UploadView] Delete confirm accepted file_id=\(entry.fileId)")
+                                    showDeleteConfirm = false
+                                    Task { await deleteEntry(entry) }
+                                }
+                                .buttonStyle(GHButtonStyle(color: .red))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    Spacer()
+                }
+            }
+        }
+        .sheet(isPresented: $showInvalidTokenPrompt) {
+            ZStack {
+                GHTheme.bg.ignoresSafeArea()
+                VStack {
+                    Spacer()
+                    GHCard(pad: 14) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Invalid delete token")
+                                .font(.headline)
+                                .ghForeground(GHTheme.text)
+                            Text("The server rejected this delete token. You can remove this entry from the device list or keep it and try again later.")
+                                .font(.subheadline)
+                                .ghForeground(GHTheme.muted)
+
+                            HStack {
+                                Button("Keep") {
+                                    logWithTimestamp("[UploadView] Invalid token prompt: keep")
+                                    showInvalidTokenPrompt = false
+                                }
+                                .buttonStyle(GHButtonStyle(color: .gray))
+
+                                Button("Remove from this device") {
+                                    guard let entry = invalidTokenEntry else {
+                                        logWithTimestamp("[UploadView] Invalid token prompt missing invalidTokenEntry")
+                                        showInvalidTokenPrompt = false
+                                        return
+                                    }
+                                    logWithTimestamp("[UploadView] Invalid token prompt: remove file_id=\(entry.fileId)")
+                                    showInvalidTokenPrompt = false
+                                    removeLocalEntry(entry)
+                                }
+                                .buttonStyle(GHButtonStyle(color: .red))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    Spacer()
+                }
+            }
+        }
+        .alert(isPresented: $showDeleteErrorAlert) {
+            Alert(
+                title: Text("Delete Failed"),
+                message: Text(deleteErrorMessage ?? "Unknown error"),
+                dismissButton: .default(Text("OK"))
+            )
         }
         .alert(isPresented: $showResultAlert) {
             Alert(
@@ -721,8 +903,95 @@ struct UploadView: View {
                 debugLog.append("payload=org=\(orgName), type=\(eventType), label=\(label.isEmpty ? "(nil)" : label)")
                 debugLog.append("upload finished [\(status)]")
                 let bodyText = String(data: data, encoding: .utf8) ?? "(no body)"
+
+                let extractJSONCandidate: (String) -> String? = { text in
+                    // Prefer extracting JSON from <pre>...</pre> when server wraps JSON in HTML.
+                    if let preRange = text.range(of: "<pre", options: .caseInsensitive) {
+                        let tail = text[preRange.lowerBound...]
+                        if let gt = tail.firstIndex(of: ">") {
+                            let after = tail.index(after: gt)
+                            let rest = String(tail[after...])
+                            if let endPreRange = rest.range(of: "</pre>", options: .caseInsensitive) {
+                                let inner = String(rest[..<endPreRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                                if let start = inner.firstIndex(of: "{"), let end = inner.lastIndex(of: "}"), start <= end {
+                                    logWithTimestamp("[UploadView] Extracted JSON from <pre> block")
+                                    return String(inner[start...end])
+                                }
+                            }
+                        }
+                    }
+
+                    // If the HTML contains CSS (e.g. style blocks), naive "first { ... }" matching will
+                    // often capture CSS braces, not JSON. Anchor extraction around "id" or "delete_token".
+                    let anchorKeys = ["\"delete_token\"", "\"id\""]
+                    let lower = text
+                    var anchorIndex: String.Index? = nil
+                    for k in anchorKeys {
+                        if let r = lower.range(of: k, options: .caseInsensitive) {
+                            anchorIndex = r.lowerBound
+                            break
+                        }
+                    }
+
+                    guard let a = anchorIndex else {
+                        logWithTimestamp("[UploadView] No JSON anchor (id/delete_token) found in finalize body")
+                        return nil
+                    }
+
+                    // Walk backwards to a '{' and then brace-match forward to a full JSON object.
+                    var startIdx = a
+                    while startIdx > lower.startIndex {
+                        let prev = lower.index(before: startIdx)
+                        if lower[prev] == "{" {
+                            startIdx = prev
+                            break
+                        }
+                        startIdx = prev
+                    }
+                    if lower[startIdx] != "{" {
+                        logWithTimestamp("[UploadView] Could not find '{' before JSON anchor")
+                        return nil
+                    }
+
+                    let chars = Array(lower[startIdx...])
+                    var depth = 0
+                    var inString = false
+                    var escape = false
+                    for j in 0..<chars.count {
+                        let c = chars[j]
+                        if inString {
+                            if escape {
+                                escape = false
+                            } else if c == "\\" {
+                                escape = true
+                            } else if c == "\"" {
+                                inString = false
+                            }
+                            continue
+                        }
+
+                        if c == "\"" {
+                            inString = true
+                            continue
+                        }
+                        if c == "{" {
+                            depth += 1
+                        } else if c == "}" {
+                            depth -= 1
+                            if depth == 0 {
+                                let candidate = String(chars[0...j])
+                                logWithTimestamp("[UploadView] Extracted JSON via anchor brace-match (len=\(candidate.count))")
+                                return candidate
+                            }
+                        }
+                    }
+
+                    logWithTimestamp("[UploadView] Anchor brace-match did not find a balanced JSON object")
+                    return nil
+                }
+
                 switch status {
-                case 201:
+                case 200, 201:
                     alertTitle = "Success"
                     alertMessage = "Upload succeeded."
                     let baseURL = base.appendingPathComponent("db").appendingPathComponent("database.php")
@@ -732,6 +1001,102 @@ struct UploadView: View {
                     let url = components?.url ?? baseURL
                     successURL = url
                     failureCount = 0
+
+                    let decodeAndPersist: (FinalizeResponse) -> Void = { resp in
+                        if let host = session.baseURL?.host, !host.isEmpty {
+                            debugLog.append("finalize decoded: id=\(resp.id), host=\(host)")
+                            let token = resp.deleteToken?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                            if token.isEmpty {
+                                let msg = "File uploaded successfully, but no delete token was returned by the server. This usually happens when the server dedupes the upload (same file content/sha256 as a previous upload). Deduped uploads can't be deleted from the server via the app. Contact contactgighive@gmail.com to request a manual deletion. You will need to submit the following information: file_id, checksum_sha256, event_date, org_name, event_type, label or file name.\n\n" +
+                                "file_id: \(resp.id)\n" +
+                                "checksum_sha256: \(resp.checksumSha256 ?? "")\n" +
+                                "event_date: \(resp.eventDate ?? "")\n" +
+                                "org_name: \(resp.orgName ?? "")\n" +
+                                "event_type: \(resp.eventType ?? "")\n" +
+                                "label: \(resp.label ?? "")\n" +
+                                "file_name: \(resp.fileName ?? "")"
+                                alertMessage = msg
+                            } else {
+                                debugLog.append("finalize delete_token present (len=\(token.count))")
+                                let entry = UploadedFileTokenEntry(
+                                    fileId: resp.id,
+                                    deleteToken: token,
+                                    createdAt: Date(),
+                                    eventDate: resp.eventDate ?? "",
+                                    orgName: resp.orgName ?? "",
+                                    eventType: resp.eventType ?? "",
+                                    label: resp.label,
+                                    fileName: resp.fileName,
+                                    fileType: resp.fileType
+                                )
+                                do {
+                                    try UploaderDeleteTokenStore.upsert(host: host, entry: entry)
+                                    debugLog.append("saved delete token")
+                                    DispatchQueue.main.async {
+                                        reloadMyUploadsOnDevice()
+                                    }
+                                } catch {
+                                    debugLog.append("failed to save delete token: \(error.localizedDescription)")
+                                }
+                            }
+                        } else {
+                            debugLog.append("missing host for delete token store")
+                        }
+                    }
+
+                    do {
+                        let resp = try JSONDecoder().decode(FinalizeResponse.self, from: data)
+                        decodeAndPersist(resp)
+                    } catch {
+                        logWithTimestamp("[UploadView] Finalize direct JSON decode failed; attempting extraction")
+
+                        let decodeCandidate: (String) -> FinalizeResponse? = { candidate in
+                            let trimmedCandidate: String = {
+                                if let start = candidate.firstIndex(of: "{"), let end = candidate.lastIndex(of: "}"), start <= end {
+                                    return String(candidate[start...end])
+                                }
+                                return candidate
+                            }()
+
+                            let htmlDecoded: String = {
+                                // Some environments return JSON HTML-escaped inside <pre>.
+                                guard trimmedCandidate.contains("&") else { return trimmedCandidate }
+                                if let data = trimmedCandidate.data(using: .utf8) {
+                                    let opts: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                                        .documentType: NSAttributedString.DocumentType.html,
+                                        .characterEncoding: String.Encoding.utf8.rawValue
+                                    ]
+                                    if let attributed = try? NSAttributedString(data: data, options: opts, documentAttributes: nil) {
+                                        return attributed.string
+                                    }
+                                }
+                                return trimmedCandidate
+                            }()
+
+                            let finalText = htmlDecoded.trimmingCharacters(in: .whitespacesAndNewlines)
+                            let prefix = String(finalText.prefix(200))
+                            logWithTimestamp("[UploadView] Finalize extracted candidate len=\(finalText.count); prefix=\(prefix)")
+
+                            guard let jsonData = finalText.data(using: .utf8) else { return nil }
+                            do {
+                                return try JSONDecoder().decode(FinalizeResponse.self, from: jsonData)
+                            } catch {
+                                logWithTimestamp("[UploadView] Finalize candidate decode error: \(error)")
+                                return nil
+                            }
+                        }
+
+                        if let candidate = extractJSONCandidate(bodyText), let resp = decodeCandidate(candidate) {
+                            debugLog.append("finalize JSON decode succeeded after extraction")
+                            decodeAndPersist(resp)
+                        } else {
+                            let snippet = String(bodyText.prefix(240))
+                            debugLog.append("finalize JSON decode failed; body prefix=\(snippet)")
+                            logWithTimestamp("[UploadView] Finalize JSON extraction/decode failed; body prefix=\(snippet)")
+                            logWithTimestamp("[UploadView] Finalize direct decode error: \(error)")
+                        }
+                    }
+
                     // Prepend success message to debug log
                     debugLog.insert("UPLOAD SUCCESSFUL!", at: 0)
                     debugLog.append("db link=\(url.absoluteString)")
@@ -757,6 +1122,24 @@ struct UploadView: View {
                 case 400:
                     alertTitle = "Bad Request"
                     alertMessage = bodyText
+                    failureCount += 1
+                case 409:
+                    alertTitle = "Duplicate Upload"
+                    if let candidate = extractJSONCandidate(bodyText),
+                       let jsonData = candidate.data(using: .utf8),
+                       let obj = try? JSONSerialization.jsonObject(with: jsonData, options: []),
+                       let dict = obj as? [String: Any] {
+                        let existingId = dict["existing_file_id"]
+                        let checksum = dict["checksum_sha256"]
+                        let msg = dict["message"] as? String
+                        var lines: [String] = []
+                        if let msg, !msg.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { lines.append(msg) }
+                        if let existingId { lines.append("existing_file_id: \(existingId)") }
+                        if let checksum { lines.append("checksum_sha256: \(checksum)") }
+                        alertMessage = lines.isEmpty ? "A file with the same content (SHA256) already exists on the server. Upload rejected to prevent duplicates." : lines.joined(separator: "\n")
+                    } else {
+                        alertMessage = "A file with the same content (SHA256) already exists on the server. Upload rejected to prevent duplicates."
+                    }
                     failureCount += 1
                 default:
                     alertTitle = "HTTP \(status)"
@@ -820,5 +1203,80 @@ struct UploadView: View {
     private func hideKeyboard() {
         // iOS 14 safe keyboard dismissal
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private func removeLocalEntry(_ entry: UploadedFileTokenEntry) {
+        guard let host = session.baseURL?.host, !host.isEmpty else {
+            reloadMyUploadsOnDevice()
+            return
+        }
+        do {
+            try UploaderDeleteTokenStore.remove(host: host, fileId: entry.fileId)
+        } catch {
+        }
+        reloadMyUploadsOnDevice()
+    }
+
+    private func deleteEntry(_ entry: UploadedFileTokenEntry) async {
+        logWithTimestamp("[UploadView] deleteEntry start file_id=\(entry.fileId)")
+        guard let baseURL = session.baseURL else {
+            logWithTimestamp("[UploadView] deleteEntry abort: missing baseURL")
+            deleteErrorMessage = "Missing base URL"
+            showDeleteErrorAlert = true
+            return
+        }
+        guard let creds = session.credentials else {
+            logWithTimestamp("[UploadView] deleteEntry abort: missing credentials")
+            deleteErrorMessage = "Missing credentials"
+            showDeleteErrorAlert = true
+            return
+        }
+        guard let host = baseURL.host, !host.isEmpty else {
+            logWithTimestamp("[UploadView] deleteEntry abort: missing host")
+            deleteErrorMessage = "Missing host"
+            showDeleteErrorAlert = true
+            return
+        }
+
+        logWithTimestamp("[UploadView] deleteEntry calling API host=\(host) user=\(creds.user)")
+
+        do {
+            let client = DatabaseAPIClient(baseURL: baseURL, basicAuth: creds, allowInsecure: session.allowInsecureTLS)
+            let resp = try await client.deleteMediaFile(fileId: entry.fileId, deleteToken: entry.deleteToken)
+            logWithTimestamp("[UploadView] deleteEntry API response success=\(resp.success) deleted=\(resp.deletedCount) errors=\(resp.errorCount)")
+            if resp.deletedCount == 1 {
+                removeLocalEntry(entry)
+            } else {
+                deleteErrorMessage = "Delete did not remove the file (deleted_count=\(resp.deletedCount), error_count=\(resp.errorCount))"
+                showDeleteErrorAlert = true
+            }
+        } catch {
+            logWithTimestamp("[UploadView] deleteEntry error: \(error)")
+            if let dbErr = error as? DatabaseError {
+                switch dbErr {
+                case .httpError(let code) where code == 403:
+                    invalidTokenEntry = entry
+                    showInvalidTokenPrompt = true
+                default:
+                    deleteErrorMessage = dbErr.localizedDescription
+                    showDeleteErrorAlert = true
+                }
+            } else {
+                deleteErrorMessage = error.localizedDescription
+                showDeleteErrorAlert = true
+            }
+        }
+    }
+
+    private func reloadMyUploadsOnDevice() {
+        guard let host = session.baseURL?.host, !host.isEmpty else {
+            myUploadsOnDevice = []
+            return
+        }
+        do {
+            myUploadsOnDevice = try UploaderDeleteTokenStore.load(host: host)
+        } catch {
+            myUploadsOnDevice = []
+        }
     }
 }

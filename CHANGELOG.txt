@@ -1,4 +1,20 @@
 ***
+releaseNotes20260216.txt
+Changes: Implement delete upload on iphone and disallow duplicates on both platforms via 409s
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/Sources/App/DatabaseAPIClient.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	new file:   GigHive/Sources/App/UploaderDeleteTokenStore.swift
+
+***
 202602013: Clean sonarcloud yml 
 
 ***
