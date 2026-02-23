@@ -1,4 +1,17 @@
 ***
+releaseNotes20260223.txt
+Changes: Additional ssl cert debug logging
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Sources/App/UploadClient.swift
+
+***
 releaseNotes20260216.txt
 Changes: Implement delete upload on iphone and disallow duplicates on both platforms via 409s
 

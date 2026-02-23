@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import UniformTypeIdentifiers
 
 struct UploadPayload {
@@ -15,17 +16,55 @@ struct UploadPayload {
 }
 
 // Insecure trust delegate — accepts any TLS certificate. Use ONLY when user opts in.
-final class InsecureTrustDelegate: NSObject, URLSessionDelegate {
+final class InsecureTrustDelegate: NSObject, URLSessionDelegate, URLSessionTaskDelegate {
     static let shared = InsecureTrustDelegate()
     private override init() { super.init() }
 
-    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+    private func handleTLSChallenge(_ challenge: URLAuthenticationChallenge, source: String, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        let host = challenge.protectionSpace.host
+        let method = challenge.protectionSpace.authenticationMethod
+        let hasTrust = (challenge.protectionSpace.serverTrust != nil)
+        logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] challenge host=\(host) method=\(method) hasTrust=\(hasTrust)")
+
+        if method == NSURLAuthenticationMethodServerTrust,
            let trust = challenge.protectionSpace.serverTrust {
+            let certCount = SecTrustGetCertificateCount(trust)
+            if certCount > 0 {
+                var chainSummaries: [String] = []
+                chainSummaries.reserveCapacity(certCount)
+                for i in 0..<certCount {
+                    if let cert = SecTrustGetCertificateAtIndex(trust, i) {
+                        let summary = (SecCertificateCopySubjectSummary(cert) as String?) ?? "<no-subject>"
+                        chainSummaries.append(summary)
+                    }
+                }
+                logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] serverTrust certCount=\(certCount) chain=\(chainSummaries)")
+            } else {
+                logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] serverTrust certCount=0")
+            }
+
+            var evalError: CFError?
+            let isTrusted = SecTrustEvaluateWithError(trust, &evalError)
+            if let evalError {
+                logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] SecTrustEvaluateWithError trusted=\(isTrusted) error=\(evalError)")
+            } else {
+                logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] SecTrustEvaluateWithError trusted=\(isTrusted) error=<nil>")
+            }
+
+            logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] usingCredential for host=\(host)")
             completionHandler(.useCredential, URLCredential(trust: trust))
         } else {
+            logWithTimestamp("[TLS][InsecureTrustDelegate][\(source)] performDefaultHandling for host=\(host)")
             completionHandler(.performDefaultHandling, nil)
         }
+    }
+
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        handleTLSChallenge(challenge, source: "session", completionHandler: completionHandler)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        handleTLSChallenge(challenge, source: "task", completionHandler: completionHandler)
     }
 }
 
