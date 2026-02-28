@@ -8,8 +8,21 @@ struct SplashView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            // Reuse existing title header with bee logo and brand font/style
-            TitleHeaderView()
+            // Centered bee logo and app name
+            GeometryReader { geometry in
+                VStack(spacing: 16) {
+                    Image("beelogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width * 0.66)
+                    
+                    Text("Gighive")
+                        .font(.title3).bold()
+                        .ghForeground(GHTheme.text)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .frame(height: 360)
 
             VStack(alignment: .leading, spacing: 4) {
                 if let creds = session.credentials {
