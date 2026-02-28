@@ -1,5 +1,9 @@
 ***
 releaseNotes20260228.txt
+Changes: Make the gighive logo on LoginView.swift / UploadView.swift larger, fix SERVER select text and remove HTTP/3 through CF as it was causing quic issues
+
+***
+releaseNotes20260228.txt
 Changes: Make the gighive logo on SplashView.swift large
 
 macbook2025:gighiveapp sodo$ git status

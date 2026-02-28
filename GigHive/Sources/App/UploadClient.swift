@@ -87,6 +87,12 @@ final class UploadClient {
             cfg.waitsForConnectivity = true
             cfg.allowsExpensiveNetworkAccess = true
             cfg.allowsConstrainedNetworkAccess = true
+            cfg.multipathServiceType = .none
+            cfg.httpShouldUsePipelining = false
+            cfg.httpMaximumConnectionsPerHost = 1
+            if #available(iOS 15.0, *) {
+                cfg.assumesHTTP3Capable = false
+            }
             if allowInsecure {
                 self.session = URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
             } else {
@@ -99,6 +105,12 @@ final class UploadClient {
             cfg.allowsConstrainedNetworkAccess = true
             cfg.timeoutIntervalForRequest = 120
             cfg.timeoutIntervalForResource = 600
+            cfg.multipathServiceType = .none
+            cfg.httpShouldUsePipelining = false
+            cfg.httpMaximumConnectionsPerHost = 1
+            if #available(iOS 15.0, *) {
+                cfg.assumesHTTP3Capable = false
+            }
             if allowInsecure {
                 self.session = URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
             } else {

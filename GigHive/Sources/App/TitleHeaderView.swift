@@ -7,7 +7,7 @@ struct TitleHeaderView: View {
             Image("beelogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: UIFont.preferredFont(forTextStyle: .title2).pointSize + 2)
+                .frame(height: (UIFont.preferredFont(forTextStyle: .title2).pointSize + 2) * 2.66)
             Text(title)
                 .font(.title3).bold()
                 .ghForeground(GHTheme.text)

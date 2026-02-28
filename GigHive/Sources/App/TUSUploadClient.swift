@@ -22,6 +22,12 @@ final class TUSUploadClient {
         cfg.allowsConstrainedNetworkAccess = true
         cfg.timeoutIntervalForRequest = 120
         cfg.timeoutIntervalForResource = 600
+        cfg.multipathServiceType = .none
+        cfg.httpShouldUsePipelining = false
+        cfg.httpMaximumConnectionsPerHost = 1
+        if #available(iOS 15.0, *) {
+            cfg.assumesHTTP3Capable = false
+        }
 
         let session: URLSession
         if allowInsecure {

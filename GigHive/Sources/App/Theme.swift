@@ -104,7 +104,12 @@ struct NoAccessoryTextField: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UITextField, context: Context) {
-        uiView.text = text
+        // Preserve normal iOS cursor/selection behavior while the user is editing.
+        // If SwiftUI pushes text updates into an active UITextField, UIKit often resets the selection.
+        guard !uiView.isFirstResponder else { return }
+        if uiView.text != text {
+            uiView.text = text
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -113,20 +118,24 @@ struct NoAccessoryTextField: UIViewRepresentable {
     
     class Coordinator: NSObject, UITextFieldDelegate {
         var parent: NoAccessoryTextField
+        var isUpdatingFromUserInput = false
         
         init(_ parent: NoAccessoryTextField) {
             self.parent = parent
         }
         
         func textFieldDidChangeSelection(_ textField: UITextField) {
-            parent.text = textField.text ?? ""
+            // Removed redundant update - textField(_:shouldChangeCharactersIn:) handles updates
+            // This was causing cursor to jump to end when backspacing
         }
         
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
             if let text = textField.text,
                let textRange = Range(range, in: text) {
                 let updatedText = text.replacingCharacters(in: textRange, with: string)
+                isUpdatingFromUserInput = true
                 parent.text = updatedText
+                isUpdatingFromUserInput = false
             }
             return true
         }
