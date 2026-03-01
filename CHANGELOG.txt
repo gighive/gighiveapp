@@ -1,4 +1,19 @@
 ***
+releaseNotes20260301.txt
+Changes: Removed unneeded quic HTTP3 logic and fixed video window playback issue.
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Sources/App/MediaPlayerView.swift
+	modified:   GigHive/Sources/App/TUSUploadClient.swift
+	modified:   GigHive/Sources/App/UploadClient.swift
+
+***
 releaseNotes20260228.txt
 Changes: Make the gighive logo on LoginView.swift / UploadView.swift larger, fix SERVER select text and remove HTTP/3 through CF as it was causing quic issues
 

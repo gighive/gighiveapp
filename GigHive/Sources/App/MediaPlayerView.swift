@@ -2,6 +2,51 @@ import SwiftUI
 import AVKit
 import AVFoundation
 
+struct PlayerViewController: UIViewControllerRepresentable {
+    let player: AVPlayer
+    
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        logWithTimestamp("[PlayerVC] makeUIViewController called")
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.allowsPictureInPicturePlayback = true
+        controller.showsPlaybackControls = true
+        controller.delegate = context.coordinator
+        logWithTimestamp("[PlayerVC] Created controller with player=\(player)")
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        let currentTime = uiViewController.player?.currentTime().seconds ?? -1
+        let rate = uiViewController.player?.rate ?? -1
+        logWithTimestamp("[PlayerVC] updateUIViewController called - currentTime=\(currentTime) rate=\(rate)")
+        if uiViewController.player !== player {
+            logWithTimestamp("[PlayerVC] ⚠️ Player instance changed, updating (this should NOT happen)")
+            uiViewController.player = player
+        } else {
+            logWithTimestamp("[PlayerVC] ✅ Player instance is the same, no update needed")
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        func playerViewController(_ playerViewController: AVPlayerViewController, willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            let currentTime = playerViewController.player?.currentTime().seconds ?? -1
+            let rate = playerViewController.player?.rate ?? -1
+            logWithTimestamp("[PlayerVC] 🔲 Will BEGIN fullscreen presentation - time=\(currentTime) rate=\(rate)")
+        }
+        
+        func playerViewController(_ playerViewController: AVPlayerViewController, willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            let currentTime = playerViewController.player?.currentTime().seconds ?? -1
+            let rate = playerViewController.player?.rate ?? -1
+            logWithTimestamp("[PlayerVC] 🔲 Will END fullscreen presentation - time=\(currentTime) rate=\(rate)")
+        }
+    }
+}
+
 struct MediaPlayerView: View {
     let baseURL: URL
     let entry: MediaEntry
@@ -15,19 +60,21 @@ struct MediaPlayerView: View {
     @State private var timeObserverToken: Any? = nil
     @State private var timeControlObserver: NSKeyValueObservation? = nil
     @State private var loaderRef: MediaResourceLoader? = nil
+    @State private var hasAutoPlayed: Bool = false
 
     var body: some View {
         NavigationView {
             Group {
                 if let player = player {
-                    VideoPlayer(player: player)
+                    PlayerViewController(player: player)
                         .onAppear {
-                            logWithTimestamp("[Player] Appeared; starting playback for file=\\(entry.fileName)")
-                            player.play()
-                        }
-                        .onDisappear {
-                            player.pause()
-                            logWithTimestamp("[Player] Disappeared; paused")
+                            if !hasAutoPlayed {
+                                logWithTimestamp("[Player] PlayerViewController appeared; starting playback")
+                                player.play()
+                                hasAutoPlayed = true
+                            } else {
+                                logWithTimestamp("[Player] PlayerViewController appeared; skipping autoplay (already played)")
+                            }
                         }
                 } else if let error = errorMessage {
                     VStack(alignment: .leading, spacing: 8) {
@@ -57,15 +104,37 @@ struct MediaPlayerView: View {
             } catch {
                 logWithTimestamp("[Player] AudioSession error: \\(error.localizedDescription)")
             }
-            Task { await preparePlayer() }
+            // Only prepare player once
+            if player == nil {
+                Task { await preparePlayer() }
+            } else {
+                logWithTimestamp("[Player] MediaPlayerView appeared; player already initialized, skipping preparePlayer")
+            }
         }
         .ghFullScreenBackground(GHTheme.bg)
     }
 
     private func close() {
         logWithTimestamp("[Player] Close tapped")
-        player?.pause()
+        cleanup()
         presentationMode.wrappedValue.dismiss()
+    }
+    
+    private func cleanup() {
+        logWithTimestamp("[Player] Cleaning up player resources")
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        statusObserver?.invalidate()
+        statusObserver = nil
+        timeControlObserver?.invalidate()
+        timeControlObserver = nil
+        if let token = timeObserverToken {
+            player?.removeTimeObserver(token)
+            timeObserverToken = nil
+        }
+        NotificationCenter.default.removeObserver(self)
+        player = nil
+        loaderRef = nil
     }
 
     private func preparePlayer() async {
@@ -163,18 +232,30 @@ struct MediaPlayerView: View {
 
             // Observe timeControlStatus to know when playback starts/waits
             timeControlObserver = newPlayer.observe(\.timeControlStatus, options: [.initial, .new]) { player, _ in
+                let currentTime = player.currentTime().seconds
+                let rate = player.rate
                 switch player.timeControlStatus {
                 case .paused:
-                    logWithTimestamp("[Player] timeControlStatus=paused")
+                    logWithTimestamp("[Player] ⏸️ timeControlStatus=paused rate=\(rate) time=\(currentTime)")
                 case .waitingToPlayAtSpecifiedRate:
                     let reason = player.reasonForWaitingToPlay?.rawValue ?? "<nil>"
-                    logWithTimestamp("[Player] timeControlStatus=waiting (reason=\(reason))")
+                    logWithTimestamp("[Player] ⏳ timeControlStatus=waiting (reason=\(reason)) rate=\(rate) time=\(currentTime)")
                 case .playing:
-                    logWithTimestamp("[Player] timeControlStatus=playing")
+                    logWithTimestamp("[Player] ▶️ timeControlStatus=playing rate=\(rate) time=\(currentTime)")
                 @unknown default:
-                    logWithTimestamp("[Player] timeControlStatus=unknown")
+                    logWithTimestamp("[Player] ❓ timeControlStatus=unknown rate=\(rate) time=\(currentTime)")
                 }
             }
+            
+            // Observe rate changes directly
+            let rateObserver = newPlayer.observe(\.rate, options: [.old, .new]) { player, change in
+                let oldRate = change.oldValue ?? 0.0
+                let newRate = change.newValue ?? 0.0
+                let currentTime = player.currentTime().seconds
+                logWithTimestamp("[Player] 🎚️ Rate changed: \(oldRate) -> \(newRate) at time=\(currentTime)")
+            }
+            // Store the rate observer (we need to add a state variable for this)
+            self.statusObserver = rateObserver
 
             // Add a short timeout to report if playback does not become ready
             DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {

@@ -90,9 +90,6 @@ final class UploadClient {
             cfg.multipathServiceType = .none
             cfg.httpShouldUsePipelining = false
             cfg.httpMaximumConnectionsPerHost = 1
-            if #available(iOS 15.0, *) {
-                cfg.assumesHTTP3Capable = false
-            }
             if allowInsecure {
                 self.session = URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
             } else {
@@ -108,9 +105,6 @@ final class UploadClient {
             cfg.multipathServiceType = .none
             cfg.httpShouldUsePipelining = false
             cfg.httpMaximumConnectionsPerHost = 1
-            if #available(iOS 15.0, *) {
-                cfg.assumesHTTP3Capable = false
-            }
             if allowInsecure {
                 self.session = URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
             } else {
