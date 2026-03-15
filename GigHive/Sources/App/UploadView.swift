@@ -179,7 +179,7 @@ struct UploadView: View {
                                                 .foregroundColor(.orange)
                                                 .bold()
                                         }
-                                        Text("Converting video to H.264 format for compatibility. This may take a few minutes for large videos.\n\nTo avoid this going forward: Change iPhone Settings → Camera → Formats → \"Most Compatible\"")
+                                        Text("Converting video to H.264 format for compatibility. This may take a few minutes for large videos.\n\nIf you wish all your videos to be in H.264 format going forward, change this setting on the iPhone: Settings → Camera → Formats → \"Most Compatible\"")
                                             .font(.caption2)
                                             .foregroundColor(.orange.opacity(0.8))
                                     }
@@ -752,6 +752,23 @@ struct UploadView: View {
         return "Auto \(df.string(from: eventDate))"
     }
 
+    private var unsupportedFormatMessage: String {
+        "WebM video is not supported for iPhone playback.\n\nPlease convert the file to MP4 (H.264 video with AAC audio) and upload that version instead."
+    }
+
+    private func isUnsupportedUploadFormat(_ url: URL) -> Bool {
+        url.pathExtension.lowercased() == "webm"
+    }
+
+    private func clearSelectedFile() {
+        fileURL = nil
+        loadedFileSize = nil
+        isLoadingMedia = false
+        photoCopyProgress = nil
+        mediaLoadingStartedAt = nil
+        cancelPreparingMedia = nil
+    }
+
     private func getValidationMessages() -> [String] {
         var messages: [String] = []
 
@@ -759,6 +776,9 @@ struct UploadView: View {
         if fileURL == nil {
             messages.append("Please select a media file")
         } else {
+            if let fileURL, isUnsupportedUploadFormat(fileURL) {
+                messages.append("WebM video is not supported on iPhone. Please upload MP4 instead")
+            }
             // Validate file size if file is selected
             if let fileSize = try? fileURL?.resourceValues(forKeys: [.fileSizeKey]).fileSize {
                 if Int64(fileSize) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
@@ -792,6 +812,17 @@ struct UploadView: View {
     private func doUpload() {
         debugLog = ["button pressed"]
         guard let fileURL else { debugLog.append("no file chosen"); alertTitle = "Missing file"; alertMessage = "Please choose a media file from Photos or Files."; showResultAlert = true; return }
+
+        if isUnsupportedUploadFormat(fileURL) {
+            debugLog.append("unsupported format: .webm")
+            alertTitle = "Unsupported Video Format"
+            alertMessage = unsupportedFormatMessage
+            DispatchQueue.main.async {
+                self.clearSelectedFile()
+            }
+            showResultAlert = true
+            return
+        }
         
         // Add file size to debug log and validate against max upload size
         do {
@@ -805,14 +836,8 @@ struct UploadView: View {
                 debugLog.append("file too large: \(fileSizeText) > \(maxSizeText)")
                 alertTitle = "File Too Large"
                 alertMessage = "The selected file (\(fileSizeText)) exceeds the maximum allowed size of \(maxSizeText).\n\nPlease select a smaller file or compress the video before uploading."
-                // Hard block: clear the selection so the user cannot retry upload without choosing a new file.
                 DispatchQueue.main.async {
-                    self.fileURL = nil
-                    self.loadedFileSize = nil
-                    self.isLoadingMedia = false
-                    self.photoCopyProgress = nil
-                    self.mediaLoadingStartedAt = nil
-                    self.cancelPreparingMedia = nil
+                    self.clearSelectedFile()
                 }
                 showResultAlert = true
                 return
@@ -1117,7 +1142,7 @@ struct UploadView: View {
                     failureCount += 1
                 case 413:
                     alertTitle = "File Too Large"
-                    alertMessage = "413 Payload Too Large.\n\nYour file exceeds the maximum allowed size of \(AppConstants.MAX_UPLOAD_SIZE_FORMATTED).\n\nPlease select a smaller file or compress the video before uploading."
+                    alertMessage = "413 Payload Too Large.\n\nThis upload exceeds Cloudflare's single-request limit of \(AppConstants.CLOUDFLARE_SINGLE_REQUEST_LIMIT_FORMATTED).\n\nGigHive's maximum allowed file size is \(AppConstants.MAX_UPLOAD_SIZE_FORMATTED), but uploads larger than \(AppConstants.CLOUDFLARE_SINGLE_REQUEST_LIMIT_FORMATTED) cannot be sent through this endpoint.\n\nPlease select a smaller file or compress the video before uploading."
                     failureCount += 1
                 case 400:
                     alertTitle = "Bad Request"

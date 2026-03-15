@@ -30,29 +30,6 @@ struct DatabaseDetailView: View {
                     }
                 }
                 
-                if let url = URL(string: entry.url, relativeTo: baseURL) {
-                    if #available(iOS 16.0, *) {
-                        ShareLink(item: url) {
-                            HStack {
-                                Image(systemName: "square.and.arrow.up")
-                                Text("Share")
-                            }
-                        }
-                        .simultaneousGesture(TapGesture().onEnded {
-                            logWithTimestamp("[Detail] Share tapped; file=\(entry.fileName)")
-                        })
-                    } else {
-                        Button(action: { 
-                            logWithTimestamp("[Detail] Share tapped; file=\(entry.fileName)")
-                            ShareHelper.present(url) 
-                        }) {
-                            HStack {
-                                Image(systemName: "square.and.arrow.up")
-                                Text("Share")
-                            }
-                        }
-                    }
-                }
             }
         }
         .listStyle(.insetGrouped)

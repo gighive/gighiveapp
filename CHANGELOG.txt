@@ -1,4 +1,51 @@
 ***
+releaseNotes20260315.txt
+Changes: Video/audio playback/stall changes/fixes, webm blocking, version number overlay, buffering messaging, filesize, H.264 messaging, frozen UI fix.
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	new file:   GigHive/AppVersion.swift
+	modified:   GigHive/Configs/AppInfo.plist
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/GigHive.xcodeproj/xcuserdata/sodo.xcuserdatad/xcdebugger/Breakpoints_v2.xcbkptlist
+	modified:   GigHive/Sources/App/AppConstants.swift
+	new file:   GigHive/Sources/App/AppVersion.swift
+	modified:   GigHive/Sources/App/DatabaseDetailView.swift
+	modified:   GigHive/Sources/App/MediaPlayerView.swift
+	modified:   GigHive/Sources/App/MediaResourceLoader.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	modified:   GigHive/Sources/ShareExtension/Info.plist
+
+Summary of Recent Fixes (Last Few Days)
+Video Playback
+
+Fullscreen support — Replaced VideoPlayer with AVPlayerViewController for native fullscreen controls
+Autoplay behavior — Video autoplays on load but doesn't restart when exiting fullscreen
+Position preservation — Playback position maintained across fullscreen transitions
+Cleanup on close — Proper resource cleanup and playback stop when closing player
+Audio Playback
+
+Frozen UI root cause — Fixed Xcode "All Exceptions" breakpoint catching internal AVFoundation C++ exceptions; changed to Objective-C only
+Custom audio UI — Built dedicated controls (play/pause, scrubber, time display, retry) with extracted AudioPlaybackState model for iOS 14 stability
+Stalled audio handling — Added status message and retry button when audio fails to start
+Upload Improvements
+
+WebM blocking — Prevented .webm uploads with user-facing error directing to MP4 (H.264 + AAC)
+File size messaging — Split error messages for 6.44 GB app limit vs 100 MB Cloudflare single-request limit
+Conversion guidance — Updated wording for H.264 conversion instructions
+UI/UX Polish
+
+Version overlay — Moved from global approach to per-view implementation (currently on SplashView)
+Removed duplicate controls — Eliminated floating close button on video (nav bar only), removed non-functional share button from database detail
+Buffering message — Changed overlay text to "Buffering video..." for clarity
+
+***
 releaseNotes20260301.txt
 Changes: Removed unneeded quic HTTP3 logic and fixed video window playback issue.
 

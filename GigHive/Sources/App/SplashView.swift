@@ -7,7 +7,8 @@ struct SplashView: View {
     @State private var goToUpload = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        ZStack {
+            VStack(alignment: .leading, spacing: 24) {
             // Centered bee logo and app name
             GeometryReader { geometry in
                 VStack(spacing: 16) {
@@ -86,21 +87,33 @@ struct SplashView: View {
                 .frame(width: 0, height: 0)
                 .hidden()
             // goToDatabase no longer used with direct NavigationLink above but keep for safety
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding()
-        .ghFullScreenBackground(GHTheme.bg)
-        .onAppear { 
-            logWithTimestamp("[Splash] appeared; loggedIn=\(session.credentials != nil)")
-            if session.credentials != nil, session.intendedRoute == .upload {
-                logWithTimestamp("[Splash] Auto-navigating to Upload after login")
-                goToUpload = true
-                // Clear intended route so that Back from Upload returns to Splash cleanly
-                session.intendedRoute = nil
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding()
+            .ghFullScreenBackground(GHTheme.bg)
+            .onAppear { 
+                logWithTimestamp("[Splash] appeared; loggedIn=\(session.credentials != nil)")
+                if session.credentials != nil, session.intendedRoute == .upload {
+                    logWithTimestamp("[Splash] Auto-navigating to Upload after login")
+                    goToUpload = true
+                    // Clear intended route so that Back from Upload returns to Splash cleanly
+                    session.intendedRoute = nil
+                }
+            }
+            .onChange(of: goToLogin) { newVal in logWithTimestamp("[Splash] goToLogin=\(newVal)") }
+            .onChange(of: goToDatabase) { newVal in logWithTimestamp("[Splash] goToDatabase=\(newVal)") }
+            
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Text(AppVersion.versionString)
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                        .padding(8)
+                }
             }
         }
-        .onChange(of: goToLogin) { newVal in logWithTimestamp("[Splash] goToLogin=\(newVal)") }
-        .onChange(of: goToDatabase) { newVal in logWithTimestamp("[Splash] goToDatabase=\(newVal)") }
     }
 }
 

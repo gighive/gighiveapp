@@ -7,11 +7,15 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
     private let credentials: (user: String, pass: String)?
     private final class RequestState {
         let loadingRequest: AVAssetResourceLoadingRequest
+        let session: URLSession
         var finished: Bool = false
         var requestedOffset: Int64 = 0
         var requestedLength: Int64 = 0 // 0 means open-ended
         var bytesDelivered: Int64 = 0
-        init(_ req: AVAssetResourceLoadingRequest) { self.loadingRequest = req }
+        init(_ req: AVAssetResourceLoadingRequest, session: URLSession) {
+            self.loadingRequest = req
+            self.session = session
+        }
     }
     private var tasks: [URLSessionTask: RequestState] = [:]
     private let queue = DispatchQueue(label: "com.gighive.media.loader")
@@ -74,7 +78,7 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
         let session = URLSession(configuration: cfg, delegate: self, delegateQueue: opQueue)
         logWithTimestamp("[Loader] GET \(real.absoluteString) headers=\(req.allHTTPHeaderFields ?? [:])")
         let task = session.dataTask(with: req)
-        let state = RequestState(loadingRequest)
+        let state = RequestState(loadingRequest, session: session)
         if let dataReq = loadingRequest.dataRequest {
             state.requestedOffset = dataReq.requestedOffset
             state.requestedLength = Int64(dataReq.requestedLength)
@@ -90,8 +94,8 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
                 if !state.finished {
                     state.finished = true
                     task.cancel()
+                    state.session.invalidateAndCancel()
                     logWithTimestamp("[Loader] Cancelled request for \(loadingRequest.request.url?.absoluteString ?? "<nil>")")
-                    state.loadingRequest.finishLoading()
                 }
             }
         }
@@ -117,6 +121,8 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
         if !(200...299).contains(http.statusCode) {
             state.finished = true
             state.loadingRequest.finishLoading(with: NSError(domain: NSURLErrorDomain, code: http.statusCode, userInfo: nil))
+            state.session.invalidateAndCancel()
+            tasks.removeValue(forKey: dataTask)
             completionHandler(.cancel)
             return
         }
@@ -137,6 +143,14 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
                 info.contentType = utType.identifier
             }
         }
+        if state.loadingRequest.dataRequest == nil {
+            state.finished = true
+            state.loadingRequest.finishLoading()
+            state.session.invalidateAndCancel()
+            tasks.removeValue(forKey: dataTask)
+            completionHandler(.cancel)
+            return
+        }
         completionHandler(.allow)
     }
 
@@ -149,6 +163,7 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
             state.finished = true
             state.loadingRequest.finishLoading()
             dataTask.cancel()
+            state.session.invalidateAndCancel()
             tasks.removeValue(forKey: dataTask)
         }
     }
@@ -160,7 +175,6 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
         if let error = error as NSError? {
             if error.code == NSURLErrorCancelled {
                 logWithTimestamp("[Loader] Complete cancelled (expected)")
-                state.loadingRequest.finishLoading()
             } else {
                 logWithTimestamp("[Loader] Complete with error: \(error.localizedDescription)")
                 state.loadingRequest.finishLoading(with: error)
@@ -168,5 +182,6 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
         } else {
             state.loadingRequest.finishLoading()
         }
+        state.session.finishTasksAndInvalidate()
     }
 }
