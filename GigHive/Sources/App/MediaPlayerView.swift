@@ -68,7 +68,7 @@ struct PlayerViewController: UIViewControllerRepresentable {
 struct MediaPlayerView: View {
     private enum PlaybackOverlayState: Equatable {
         case loading(String)
-        case failed(String)
+        case failed(title: String, detail: String)
         case none
     }
 
@@ -236,11 +236,11 @@ struct MediaPlayerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(player == nil ? 0 : 0.45))
             .allowsHitTesting(false)
-        case .failed(let message):
+        case .failed(let title, let detail):
             VStack(alignment: .center, spacing: 10) {
-                Text("Media failed to load")
+                Text(title)
                     .foregroundColor(.red)
-                Text(message)
+                Text(detail)
                     .font(.caption)
                     .multilineTextAlignment(.center)
             }
@@ -374,9 +374,9 @@ struct MediaPlayerView: View {
         overlayState = .loading(message)
     }
 
-    private func showFailure(_ message: String) {
+    private func showFailure(_ message: String, title: String = "Media failed to load") {
         errorMessage = message
-        overlayState = .failed(message)
+        overlayState = .failed(title: title, detail: message)
     }
 
     private var audioStatusMessage: String? {
@@ -386,8 +386,8 @@ struct MediaPlayerView: View {
         switch overlayState {
         case .loading(let message):
             return message
-        case .failed(let message):
-            return message
+        case .failed(_, let detail):
+            return detail
         case .none:
             if player != nil, audioState.currentTimeSeconds <= 0.1, !audioState.isPlaying {
                 return "Audio is preparing. You can tap Retry or Close."
@@ -561,7 +561,21 @@ struct MediaPlayerView: View {
                     let err = item.error?.localizedDescription ?? "unknown"
                     self.logItemDiagnostics(item, prefix: "[Player] Item status: failed: \(err)")
                     self.logAssetKeyStatus(asset, mediaURL: mediaURL)
-                    self.showFailure(err)
+                    let nsErr = item.error as NSError?
+                    logWithTimestamp("[Player] Item NSError domain=\(nsErr?.domain ?? "<nil>") code=\(nsErr?.code ?? 0) userInfo=\(nsErr?.userInfo ?? [:])")
+                    // Check if the underlying cause is our loader's range-request error
+                    let loaderDomain = "GigHiveMediaResourceLoader"
+                    let underlying = nsErr?.userInfo[NSUnderlyingErrorKey] as? NSError
+                    if let loaderMsg = self.loaderRef?.lastFailureMessage {
+                        self.showFailure(loaderMsg, title: loaderMsg)
+                    } else if underlying?.domain == loaderDomain,
+                       let loaderMsg = underlying?.localizedDescription {
+                        self.showFailure(loaderMsg, title: loaderMsg)
+                    } else if nsErr?.domain == loaderDomain {
+                        self.showFailure(err, title: err)
+                    } else {
+                        self.showFailure(err)
+                    }
                 @unknown default:
                     logWithTimestamp("[Player] Item status: unknown default")
                 }

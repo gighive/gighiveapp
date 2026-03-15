@@ -6,6 +6,8 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
     private static let errorDomain = "GigHiveMediaResourceLoader"
     private let allowInsecureTLS: Bool
     private let credentials: (user: String, pass: String)?
+    private(set) var lastFailureMessage: String?
+    private(set) var lastFailureResponseHeaders: [AnyHashable: Any] = [:]
     private final class RequestState {
         let loadingRequest: AVAssetResourceLoadingRequest
         let session: URLSession
@@ -131,7 +133,23 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
         if requestedRange && http.statusCode != 206 {
             state.finished = true
             let message = "Server did not honor byte-range request for media playback. Expected HTTP 206 Partial Content but received HTTP \(http.statusCode)."
+            lastFailureMessage = message
+            lastFailureResponseHeaders = http.allHeaderFields
             logWithTimestamp("[Loader] ❌ \(message)")
+            // Dump all response headers for root-cause diagnosis
+            let diagHeaders = ["cf-cache-status", "server", "content-length", "content-range",
+                               "accept-ranges", "cache-control", "etag", "x-cache", "via", "age"]
+            for key in diagHeaders {
+                if let val = http.value(forHTTPHeaderField: key) {
+                    logWithTimestamp("[Loader] ⚠️ resp[\(key)]=\(val)")
+                }
+            }
+            logWithTimestamp("[Loader] ⚠️ allHeaders=\(http.allHeaderFields as? [String: Any] ?? [:])")
+            logWithTimestamp("[Loader] ⚠️ requestedRange=bytes=\(state.requestedOffset)-\(state.requestedOffset + state.requestedLength - 1) url=\(dataTask.currentRequest?.url?.absoluteString ?? "<nil>")")
+            logWithTimestamp("[Loader] ⚠️ requestURL headers=\(dataTask.currentRequest?.allHTTPHeaderFields ?? [:])")
+            logWithTimestamp("[Loader] ⚠️ originalURL headers=\(dataTask.originalRequest?.allHTTPHeaderFields ?? [:])")
+            logWithTimestamp("[Loader] ⚠️ response URL=\(http.url?.absoluteString ?? "<nil>")")
+            logWithTimestamp("[Loader] ⚠️ HTTP version (expectedContentLength)=\(http.expectedContentLength)")
             state.loadingRequest.finishLoading(with: NSError(
                 domain: Self.errorDomain,
                 code: http.statusCode,
