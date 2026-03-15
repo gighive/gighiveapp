@@ -121,5 +121,6 @@ struct SplashView_Previews: PreviewProvider {
     static var previews: some View {
         SplashView()
             .environmentObject(AuthSession())
+            .environmentObject(UploadStateStore())
     }
 }

@@ -32,41 +32,17 @@ struct LabeledField<Content: View>: View {
 
 struct UploadView: View {
     @EnvironmentObject var session: AuthSession
+    @EnvironmentObject var uploadState: UploadStateStore
     // SERVER
     @AppStorage("gh_server_url") private var serverURLString: String = "https://gighive" // editable by user
     @AppStorage("gh_basic_user") private var username: String = ""
     @AppStorage("gh_basic_pass") private var password: String = ""
     @AppStorage("gh_eventType_default") private var storedEventType: String = "band"
 
-    @State private var fileURL: URL?
-    @State private var eventDate = Date()
-    @State private var orgName = ""
-    @State private var eventType = "band"
-    @State private var label = ""
-    @State private var autogenLabel = false
     @State private var showPhotosPicker = false
     @State private var showFilesPicker = false
-    @State private var isUploading = false
-    @State private var isCancelling = false
-    @State private var showResultAlert = false
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
-    @State private var debugLog: [String] = []
-    @State private var successURL: URL?
-    @State private var failureCount: Int = 0
-    @State private var uploadTask: Task<Void, Never>? = nil
-    @State private var lastButtonStatus: String? = nil
-    @State private var currentUploadClient: UploadClient? = nil
     @State private var allowInsecureTLS = false
-    @State private var isLoadingMedia = false
-    @State private var cancelPreparingMedia: (() -> Void)? = nil
-    @State private var loadedFileSize: String? = nil
-    // Ensure loading text is visible for at least a minimum duration
-    @State private var mediaLoadingStartedAt: Date? = nil
-    @State private var lastProgressBucket: Int = 0
     @State private var pendingFileSizeError: FileSizeError? = nil
-    @State private var photoCopyProgress: Double? = nil  // 0.0 to 1.0 for Photos copy progress
-    @State private var uploadProgress: Double? = nil  // 0.0 to 1.0 for upload progress
     @State private var myUploadsOnDevice: [UploadedFileTokenEntry] = []
     @State private var pendingDeleteEntry: UploadedFileTokenEntry? = nil
     @State private var showDeleteConfirm: Bool = false
@@ -105,6 +81,126 @@ struct UploadView: View {
 
     let onUpload: (UploadPayload) -> Void
     @Environment(\.openURL) private var openURL
+
+    private var fileURL: URL? {
+        get { uploadState.fileURL }
+        nonmutating set { uploadState.fileURL = newValue }
+    }
+
+    private var eventDate: Date {
+        get { uploadState.eventDate }
+        nonmutating set { uploadState.eventDate = newValue }
+    }
+
+    private var orgName: String {
+        get { uploadState.orgName }
+        nonmutating set { uploadState.orgName = newValue }
+    }
+
+    private var eventType: String {
+        get { uploadState.eventType }
+        nonmutating set { uploadState.eventType = newValue }
+    }
+
+    private var label: String {
+        get { uploadState.label }
+        nonmutating set { uploadState.label = newValue }
+    }
+
+    private var autogenLabel: Bool {
+        get { uploadState.autogenLabel }
+        nonmutating set { uploadState.autogenLabel = newValue }
+    }
+
+    private var isUploading: Bool {
+        get { uploadState.isUploading }
+        nonmutating set { uploadState.isUploading = newValue }
+    }
+
+    private var isCancelling: Bool {
+        get { uploadState.isCancelling }
+        nonmutating set { uploadState.isCancelling = newValue }
+    }
+
+    private var showResultAlert: Bool {
+        get { uploadState.showResultAlert }
+        nonmutating set { uploadState.showResultAlert = newValue }
+    }
+
+    private var alertTitle: String {
+        get { uploadState.alertTitle }
+        nonmutating set { uploadState.alertTitle = newValue }
+    }
+
+    private var alertMessage: String {
+        get { uploadState.alertMessage }
+        nonmutating set { uploadState.alertMessage = newValue }
+    }
+
+    private var debugLog: [String] {
+        get { uploadState.debugLog }
+        nonmutating set { uploadState.debugLog = newValue }
+    }
+
+    private var successURL: URL? {
+        get { uploadState.successURL }
+        nonmutating set { uploadState.successURL = newValue }
+    }
+
+    private var failureCount: Int {
+        get { uploadState.failureCount }
+        nonmutating set { uploadState.failureCount = newValue }
+    }
+
+    private var lastButtonStatus: String? {
+        get { uploadState.lastButtonStatus }
+        nonmutating set { uploadState.lastButtonStatus = newValue }
+    }
+
+    private var isLoadingMedia: Bool {
+        get { uploadState.isLoadingMedia }
+        nonmutating set { uploadState.isLoadingMedia = newValue }
+    }
+
+    private var loadedFileSize: String? {
+        get { uploadState.loadedFileSize }
+        nonmutating set { uploadState.loadedFileSize = newValue }
+    }
+
+    private var mediaLoadingStartedAt: Date? {
+        get { uploadState.mediaLoadingStartedAt }
+        nonmutating set { uploadState.mediaLoadingStartedAt = newValue }
+    }
+
+    private var lastProgressBucket: Int {
+        get { uploadState.lastProgressBucket }
+        nonmutating set { uploadState.lastProgressBucket = newValue }
+    }
+
+    private var photoCopyProgress: Double? {
+        get { uploadState.photoCopyProgress }
+        nonmutating set { uploadState.photoCopyProgress = newValue }
+    }
+
+    private var uploadProgress: Double? {
+        get { uploadState.uploadProgress }
+        nonmutating set { uploadState.uploadProgress = newValue }
+    }
+
+    private var uploadTask: Task<Void, Never>? {
+        get { uploadState.uploadTask }
+        nonmutating set { uploadState.uploadTask = newValue }
+    }
+
+    private var currentUploadClient: UploadClient? {
+        get { uploadState.currentUploadClient }
+        nonmutating set { uploadState.currentUploadClient = newValue }
+    }
+
+    private var cancelPreparingMedia: (() -> Void)? {
+        get { uploadState.cancelPreparingMedia }
+        nonmutating set { uploadState.cancelPreparingMedia = newValue }
+    }
 
     var body: some View {
         ScrollView {
@@ -194,7 +290,7 @@ struct UploadView: View {
                         }
 
                         LabeledField("Event date *") {
-                            DatePicker("", selection: $eventDate, displayedComponents: .date)
+                            DatePicker("", selection: Binding(get: { eventDate }, set: { eventDate = $0 }), displayedComponents: .date)
                                 .labelsHidden()
                                 .datePickerStyle(CompactDatePickerStyle())
                                 .ghForeground(GHTheme.text)
@@ -203,7 +299,7 @@ struct UploadView: View {
 
                         LabeledField("Band or wedding party name *") {
                             NoAccessoryTextField(
-                                text: $orgName,
+                                text: Binding(get: { orgName }, set: { orgName = $0 }),
                                 placeholder: "",
                                 keyboardType: .default,
                                 autocapitalizationType: .words,
@@ -216,7 +312,7 @@ struct UploadView: View {
                         }
 
                         LabeledField("Event type *") {
-                            Picker("", selection: $eventType) {
+                            Picker("", selection: Binding(get: { eventType }, set: { eventType = $0 })) {
                                 Text("band").tag("band")
                                 Text("wedding").tag("wedding")
                             }
@@ -225,7 +321,7 @@ struct UploadView: View {
 
                         LabeledField("Song title or wedding table / identifier *") {
                             NoAccessoryTextField(
-                                text: $label,
+                                text: Binding(get: { label }, set: { label = $0 }),
                                 placeholder: "",
                                 keyboardType: .default,
                                 autocapitalizationType: .none,
@@ -237,7 +333,7 @@ struct UploadView: View {
                             .cornerRadius(6)
                         }
 
-                        Toggle(isOn: $autogenLabel) {
+                        Toggle(isOn: Binding(get: { autogenLabel }, set: { autogenLabel = $0 })) {
                             GHLabel(text: "Autogenerate label?")
                         }
                         .ghTint(GHTheme.accent)
@@ -428,32 +524,31 @@ struct UploadView: View {
         .ghFullScreenBackground(GHTheme.bg)
         .sheet(isPresented: $showPhotosPicker) {
             PHPickerView(selectionHandler: { url in
-                // Clear old debug log when selecting new file
-                debugLog = []
+                onMain {
+                    debugLog = []
 
-                if let url = url {
-                    // Don't set isLoadingMedia here - it gets interrupted by picker dismissal
-                    // Instead, set fileURL and let .onChange() handle the loading state
-                    logWithTimestamp("📸 [PHPicker] File selected, setting fileURL")
-                    self.loadedFileSize = nil
-                    self.fileURL = url
-                    self.showPhotosPicker = false
-                    self.cancelPreparingMedia = nil
-                    debugLog.append("file selected from Photos")
-                } else {
-                    // User cancelled
-                    self.showPhotosPicker = false
-                    self.fileURL = nil
-                    self.loadedFileSize = nil
-                    self.isLoadingMedia = false
-                    self.cancelPreparingMedia = nil
-                    debugLog.append("photos canceled")
+                    if let url = url {
+                        logWithTimestamp("📸 [PHPicker] File selected, setting fileURL")
+                        self.loadedFileSize = nil
+                        self.fileURL = url
+                        self.showPhotosPicker = false
+                        self.cancelPreparingMedia = nil
+                        debugLog.append("file selected from Photos")
+                    } else {
+                        self.showPhotosPicker = false
+                        self.fileURL = nil
+                        self.loadedFileSize = nil
+                        self.isLoadingMedia = false
+                        self.cancelPreparingMedia = nil
+                        debugLog.append("photos canceled")
+                    }
                 }
             }, onFileTooLarge: { fileSize, maxSize in
-                // Dismiss picker first, then set error state
                 logWithTimestamp("🚫 [PHPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
-                debugLog.append("file rejected: \(fileSize) > \(maxSize)")
-                self.showPhotosPicker = false
+                onMain {
+                    debugLog.append("file rejected: \(fileSize) > \(maxSize)")
+                    self.showPhotosPicker = false
+                }
                 logWithTimestamp("🚫 [PHPicker] Dismissed picker sheet")
                 // Delay setting error until after picker dismisses
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -462,23 +557,27 @@ struct UploadView: View {
                     logWithTimestamp("🚫 [PHPicker] pendingFileSizeError set to: \(String(describing: self.pendingFileSizeError))")
                 }
             }, onCopyStarted: {
-                // File copy from Photos has started - show progress immediately
                 logWithTimestamp("📸 [PHPicker] onCopyStarted - showing progress indicator")
-                self.isLoadingMedia = true
-                self.mediaLoadingStartedAt = Date()
-                self.loadedFileSize = nil
-                self.photoCopyProgress = nil
-                debugLog.append("copying file from Photos...")
+                onMain {
+                    self.isLoadingMedia = true
+                    self.mediaLoadingStartedAt = Date()
+                    self.loadedFileSize = nil
+                    self.photoCopyProgress = nil
+                    debugLog.append("copying file from Photos...")
+                }
             }, onCopyProgress: { progress in
-                // Update progress during copy
-                self.photoCopyProgress = progress
+                onMain {
+                    self.photoCopyProgress = progress
+                }
             }, onCopyCancelAvailable: { cancel in
                 if cancel == nil {
                     logWithTimestamp("🧹 [UploadView] Received nil cancel hook (clearing)")
                 } else {
                     logWithTimestamp("🧷 [UploadView] Received cancel hook (installing)")
                 }
-                self.cancelPreparingMedia = cancel
+                onMain {
+                    self.cancelPreparingMedia = cancel
+                }
             })
             .modifier(PresentationDetentsCompat())
         }
@@ -491,22 +590,22 @@ struct UploadView: View {
                     UTType.mp3
                 ],
                 onPick: { url in
-                    // Clear old debug log when selecting new file
-                    debugLog = []
+                    onMain {
+                        debugLog = []
+                    }
 
-                    // Show loading immediately upon a valid selection, then dismiss picker
                     if let url = url {
-                        // Mark the start moment and show loading immediately
-                        self.mediaLoadingStartedAt = Date()
-                        self.isLoadingMedia = true
-                        self.loadedFileSize = nil
-                        self.fileURL = url
-                        self.showFilesPicker = false
-                        debugLog.append("reading file metadata...")
+                        let startedAt = Date()
+                        onMain {
+                            self.mediaLoadingStartedAt = startedAt
+                            self.isLoadingMedia = true
+                            self.loadedFileSize = nil
+                            self.fileURL = url
+                            self.showFilesPicker = false
+                            debugLog.append("reading file metadata...")
+                        }
 
-                        // Compute file size and only clear loading after minimum visible duration
                         DispatchQueue.global(qos: .userInitiated).async {
-                            debugLog.append("calculating file size...")
                             let minVisible: TimeInterval = 1.0
                             let sizeText: String = {
                                 do {
@@ -516,8 +615,7 @@ struct UploadView: View {
                                     return "unknown"
                                 }
                             }()
-                            let started = self.mediaLoadingStartedAt ?? Date()
-                            let elapsed = Date().timeIntervalSince(started)
+                            let elapsed = Date().timeIntervalSince(startedAt)
                             let remaining = max(0, minVisible - elapsed)
                             DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
                                 self.loadedFileSize = sizeText
@@ -528,19 +626,21 @@ struct UploadView: View {
                             }
                         }
                     } else {
-                        // User cancelled
-                        self.showFilesPicker = false
-                        self.fileURL = nil
-                        self.loadedFileSize = nil
-                        self.isLoadingMedia = false
-                        debugLog.append("files canceled")
+                        onMain {
+                            self.showFilesPicker = false
+                            self.fileURL = nil
+                            self.loadedFileSize = nil
+                            self.isLoadingMedia = false
+                            debugLog.append("files canceled")
+                        }
                     }
                 },
                 onFileTooLarge: { fileSize, maxSize in
-                    // Dismiss picker first, then set error state
                     logWithTimestamp("🚫 [DocumentPicker] onFileTooLarge callback fired: \(fileSize) > \(maxSize)")
-                    debugLog.append("file rejected: \(fileSize) > \(maxSize)")
-                    self.showFilesPicker = false
+                    onMain {
+                        debugLog.append("file rejected: \(fileSize) > \(maxSize)")
+                        self.showFilesPicker = false
+                    }
                     logWithTimestamp("🚫 [DocumentPicker] Dismissed picker sheet")
                     // Delay setting error until after picker dismisses
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -575,10 +675,10 @@ struct UploadView: View {
                 self.isLoadingMedia = true
                 self.mediaLoadingStartedAt = Date()
                 debugLog.append("reading file metadata...")
+                let startedAt = self.mediaLoadingStartedAt ?? Date()
                 
                 // Compute file size on background thread
                 DispatchQueue.global(qos: .userInitiated).async {
-                    debugLog.append("calculating file size...")
                     let minVisible: TimeInterval = 1.0
                     let sizeText: String = {
                         do {
@@ -588,8 +688,7 @@ struct UploadView: View {
                             return "unknown"
                         }
                     }()
-                    let started = self.mediaLoadingStartedAt ?? Date()
-                    let elapsed = Date().timeIntervalSince(started)
+                    let elapsed = Date().timeIntervalSince(startedAt)
                     let remaining = max(0, minVisible - elapsed)
                     logWithTimestamp("📸 [Background] File size calculated: \(sizeText), elapsed: \(elapsed)s, remaining: \(remaining)s")
                     DispatchQueue.main.asyncAfter(deadline: .now() + remaining) {
@@ -737,7 +836,7 @@ struct UploadView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .alert(isPresented: $showResultAlert) {
+        .alert(isPresented: Binding(get: { showResultAlert }, set: { showResultAlert = $0 })) {
             Alert(
                 title: Text(alertTitle),
                 message: Text(alertMessage),
@@ -750,6 +849,14 @@ struct UploadView: View {
         let df = DateFormatter()
         df.dateFormat = "yyyy-MM-dd"
         return "Auto \(df.string(from: eventDate))"
+    }
+
+    private func onMain(_ updates: @escaping () -> Void) {
+        if Thread.isMainThread {
+            updates()
+        } else {
+            DispatchQueue.main.async(execute: updates)
+        }
     }
 
     private var unsupportedFormatMessage: String {

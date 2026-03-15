@@ -1,5 +1,23 @@
 ***
 releaseNotes20260315.txt
+Changes: Made upload status persistent so if you leave upload page and return, status is there.
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/Sources/App/GigHiveApp.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	new file:   GigHive/Sources/App/UploadStateStore.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	new file:   GigHive/UploadStateStore.swift
+
+***
+releaseNotes20260315.txt
 Changes: additional log change to messaging
 
 macbook2025:gighiveapp sodo$ git status

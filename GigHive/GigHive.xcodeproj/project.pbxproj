@@ -47,6 +47,7 @@
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
 		D38827C03AABB0678A73D6D6 /* UploadFormView.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */; };
 		D8C6D55B2F65FC1700C85A56 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C6D55A2F65FC1700C85A56 /* AppVersion.swift */; };
+		D8E1CB342F670D6C00557F3C /* UploadStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1CB332F670D6C00557F3C /* UploadStateStore.swift */; };
 		DE2E22F117C7982666FF1CC1 /* TitleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15373040C6F22CB5C17F42D3 /* TitleHeaderView.swift */; };
 		EA4820199948EC30E4B358D9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2F3075629A234B4E841E5B7 /* SplashView.swift */; };
 		ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */; };
@@ -98,6 +99,7 @@
 		D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-rename"; sourceTree = "<group>"; };
 		D3055290AEEA5443F286065A /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		D8C6D55A2F65FC1700C85A56 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
+		D8E1CB332F670D6C00557F3C /* UploadStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadStateStore.swift; sourceTree = "<group>"; };
 		DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = PickerBridges.swift.backup; sourceTree = "<group>"; };
 		DCB48CD79DA5D49B822B427D /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 		EF3F9E81C200EBB9D290A609 = {
 			isa = PBXGroup;
 			children = (
+				D8E1CB332F670D6C00557F3C /* UploadStateStore.swift */,
 				D8C6D55A2F65FC1700C85A56 /* AppVersion.swift */,
 				E2BD80677E697C313615AB9A /* Assets.xcassets */,
 				688C093A5F5BE143D3054F19 /* App */,
@@ -315,6 +318,7 @@
 			files = (
 				2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */,
 				5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */,
+				D8E1CB342F670D6C00557F3C /* UploadStateStore.swift in Sources */,
 				00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */,
 				C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */,
 				3CF85F5B751987188D075143 /* DatabaseModels.swift in Sources */,
