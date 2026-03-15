@@ -1,5 +1,27 @@
 ***
 releaseNotes20260315.txt
+Changes: removed destructive logAssetDiagnostics pre-load that could poison asset keys, explicit detection and clear error message when a ranged request gets 200 instead of 206 
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is ahead of 'origin/master' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   .gitignore
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Sources/App/MediaPlayerView.swift
+	modified:   GigHive/Sources/App/MediaResourceLoader.swift
+
+App-side code changes
+MediaPlayerView.swift — removed destructive logAssetDiagnostics pre-load that could poison asset keys before AVPlayerItem was created; replaced with non-destructive logAssetKeyStatus called from the item status observer
+MediaResourceLoader.swift — explicit detection and clear error message when a ranged request gets 200 instead of 206 (this is what enabled us to diagnose the transient failure)
+Key takeaway
+The rapid back-and-forth between multiple media streams likely caused a transient anomaly (Cloudflare edge cache, Apache mod_cache_disk, or connection reuse artifact). The app now has better diagnostics to catch this if it recurs, and the preventive infra recommendations are documented for whenever you want to apply them.
+
+***
+releaseNotes20260315.txt
 Changes: Video/audio playback/stall changes/fixes, webm blocking, version number overlay, buffering messaging, filesize, H.264 messaging, frozen UI fix.
 
 macbook2025:gighiveapp sodo$ git status

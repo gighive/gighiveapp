@@ -3,6 +3,7 @@ import AVFoundation
 import UniformTypeIdentifiers
 
 final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSessionDataDelegate {
+    private static let errorDomain = "GigHiveMediaResourceLoader"
     private let allowInsecureTLS: Bool
     private let credentials: (user: String, pass: String)?
     private final class RequestState {
@@ -118,9 +119,24 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
         if state.finished { completionHandler(.cancel); return }
         guard let http = response as? HTTPURLResponse else { completionHandler(.cancel); return }
         logWithTimestamp("[Loader] HTTP \(http.statusCode) for \(dataTask.currentRequest?.url?.path ?? "<nil>")")
+        let requestedRange = state.requestedOffset > 0 || state.requestedLength > 0
         if !(200...299).contains(http.statusCode) {
             state.finished = true
             state.loadingRequest.finishLoading(with: NSError(domain: NSURLErrorDomain, code: http.statusCode, userInfo: nil))
+            state.session.invalidateAndCancel()
+            tasks.removeValue(forKey: dataTask)
+            completionHandler(.cancel)
+            return
+        }
+        if requestedRange && http.statusCode != 206 {
+            state.finished = true
+            let message = "Server did not honor byte-range request for media playback. Expected HTTP 206 Partial Content but received HTTP \(http.statusCode)."
+            logWithTimestamp("[Loader] ❌ \(message)")
+            state.loadingRequest.finishLoading(with: NSError(
+                domain: Self.errorDomain,
+                code: http.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: message]
+            ))
             state.session.invalidateAndCancel()
             tasks.removeValue(forKey: dataTask)
             completionHandler(.cancel)

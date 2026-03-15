@@ -457,8 +457,10 @@ struct MediaPlayerView: View {
             await headDiagnostics(url: mediaURL, headers: headers)
 
             let asset: AVURLAsset
-            if allowInsecureTLS {
-                // Route through resource loader proxy with custom scheme (explicit build)
+            let shouldUseProxyLoader = allowInsecureTLS || !headers.isEmpty
+            if shouldUseProxyLoader {
+                // Route through resource loader proxy with custom scheme so AVFoundation
+                // does not depend on direct header-field handling for authenticated media.
                 let host = mediaURL.host ?? ""
                 let port = mediaURL.port.map { ":\($0)" } ?? ""
                 let path = mediaURL.path
@@ -477,13 +479,16 @@ struct MediaPlayerView: View {
                 asset.resourceLoader.setDelegate(loader, queue: .main)
                 logWithTimestamp("[Player] Using proxy loader for media")
             } else {
-                // Direct path with Authorization header for valid TLS
+                // Direct path for public media when no custom loading behavior is needed
                 asset = AVURLAsset(url: mediaURL, options: [
                     "AVURLAssetHTTPHeaderFieldsKey": headers
                 ])
             }
 
-            await logAssetDiagnostics(asset, mediaURL: mediaURL)
+            // NOTE: Do NOT call logAssetDiagnostics before creating the player item.
+            // loadValuesAsynchronously permanently caches key-load failures, which
+            // poisons the asset before AVPlayerItem/AVPlayer get a chance to load it
+            // using their own internal recovery logic.
             let item = AVPlayerItem(asset: asset)
 
             // Observe status changes for debugging
@@ -534,6 +539,7 @@ struct MediaPlayerView: View {
                     }
                 case .readyToPlay:
                     self.logItemDiagnostics(item, prefix: "[Player] Item status: readyToPlay")
+                    self.logAssetKeyStatus(asset, mediaURL: mediaURL)
                     let duration = item.duration.seconds
                     if duration.isFinite, duration > 0 {
                         self.audioState.durationSeconds = duration
@@ -554,6 +560,7 @@ struct MediaPlayerView: View {
                 case .failed:
                     let err = item.error?.localizedDescription ?? "unknown"
                     self.logItemDiagnostics(item, prefix: "[Player] Item status: failed: \(err)")
+                    self.logAssetKeyStatus(asset, mediaURL: mediaURL)
                     self.showFailure(err)
                 @unknown default:
                     logWithTimestamp("[Player] Item status: unknown default")
@@ -673,32 +680,21 @@ struct MediaPlayerView: View {
         }
     }
 
-    private func logAssetDiagnostics(_ asset: AVURLAsset, mediaURL: URL) async {
+    /// Non-destructive asset key status check.  Only reads cached status via
+    /// statusOfValue(forKey:) — never calls loadValuesAsynchronously, so it
+    /// cannot poison keys that AVPlayerItem has not attempted to load yet.
+    private func logAssetKeyStatus(_ asset: AVURLAsset, mediaURL: URL) {
         let keys = ["playable", "duration", "tracks", "hasProtectedContent"]
-        await withCheckedContinuation { continuation in
-            asset.loadValuesAsynchronously(forKeys: keys) {
-                var results: [String] = []
-                for key in keys {
-                    var error: NSError?
-                    let status = asset.statusOfValue(forKey: key, error: &error)
-                    let errorText = error?.localizedDescription ?? "<nil>"
-                    results.append("\(key)=\(self.assetKeyStatusDescription(status)) error=\(errorText)")
-                }
-
-                let durationSeconds = asset.duration.seconds
-                let durationDescription = durationSeconds.isFinite ? String(format: "%.3f", durationSeconds) : "non-finite"
-                let trackSummaries = asset.tracks.map { track -> String in
-                    let mediaType = track.mediaType.rawValue
-                    return "{type=\(mediaType)}"
-                }
-
-                logWithTimestamp("[Asset] url=\(mediaURL.absoluteString) playable=\(asset.isPlayable) protected=\(asset.hasProtectedContent) duration=\(durationDescription) trackCount=\(asset.tracks.count) keyStatuses=\(results)")
-                if !trackSummaries.isEmpty {
-                    logWithTimestamp("[Asset] tracks=\(trackSummaries)")
-                }
-                continuation.resume()
-            }
+        var results: [String] = []
+        for key in keys {
+            var error: NSError?
+            let status = asset.statusOfValue(forKey: key, error: &error)
+            let errorText = error?.localizedDescription ?? "<nil>"
+            results.append("\(key)=\(assetKeyStatusDescription(status)) error=\(errorText)")
         }
+        let durationSeconds = asset.duration.seconds
+        let durationDescription = durationSeconds.isFinite ? String(format: "%.3f", durationSeconds) : "non-finite"
+        logWithTimestamp("[Asset] url=\(mediaURL.absoluteString) duration=\(durationDescription) keyStatuses=\(results)")
     }
 
     private func assetKeyStatusDescription(_ status: AVKeyValueStatus) -> String {

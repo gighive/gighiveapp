@@ -7,6 +7,5 @@ build/
 # macOS
 .DS_Store
 
-# ignore temp doc directory
+# ignore ansible infrastructure code directory
 gighiveinfra/
-
