@@ -96,7 +96,7 @@ final class DatabaseAPIClient {
         }
 
         let body: [String: Any] = [
-            "file_id": fileId,
+            "asset_id": fileId,
             "delete_token": token
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])

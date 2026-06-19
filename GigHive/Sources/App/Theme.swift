@@ -179,7 +179,10 @@ struct NoAccessorySecureField: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UITextField, context: Context) {
-        uiView.text = text
+        guard !uiView.isFirstResponder else { return }
+        if uiView.text != text {
+            uiView.text = text
+        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -194,7 +197,7 @@ struct NoAccessorySecureField: UIViewRepresentable {
         }
         
         func textFieldDidChangeSelection(_ textField: UITextField) {
-            parent.text = textField.text ?? ""
+            // Handled by shouldChangeCharactersIn to avoid mutating state during view update
         }
         
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {

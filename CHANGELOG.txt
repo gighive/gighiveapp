@@ -1,4 +1,26 @@
 ***
+releaseNotes20260619.txt
+Changes: delete request body key rename, MediaPlayerView — unreachable catch block, deprecated TUSClient init, UploadView — unused requestURL binding
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Configs/AppInfo.plist
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHive.xcscheme
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHiveShare.xcscheme
+	modified:   GigHive/Sources/App/DatabaseAPIClient.swift
+	modified:   GigHive/Sources/App/MediaPlayerView.swift
+	modified:   GigHive/Sources/App/TUSUploadClient.swift
+	modified:   GigHive/Sources/App/Theme.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	modified:   GigHive/Sources/ShareExtension/Info.plist
+
+***
 releaseNotes20260315.txt
 Changes: Made upload status persistent so if you leave upload page and return, status is there.
 

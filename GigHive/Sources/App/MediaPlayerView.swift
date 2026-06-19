@@ -438,7 +438,6 @@ struct MediaPlayerView: View {
     }
 
     private func preparePlayer() async {
-        do {
             showLoading()
             guard let mediaURL = URL(string: entry.url, relativeTo: baseURL) else {
                 showFailure("Invalid media URL")
@@ -664,10 +663,6 @@ struct MediaPlayerView: View {
                     self.showLoading("Loading media…")
                 }
             }
-        } catch {
-            showFailure(error.localizedDescription)
-            logWithTimestamp("[Player] Error: \(error.localizedDescription)")
-        }
     }
 
     private func logItemDiagnostics(_ item: AVPlayerItem, prefix: String) {

@@ -26,33 +26,48 @@ final class TUSUploadClient {
         cfg.httpShouldUsePipelining = false
         cfg.httpMaximumConnectionsPerHost = 1
 
-        let session: URLSession
-        if allowInsecure {
-            session = URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
-        } else {
-            session = URLSession(configuration: cfg)
-        }
-
         let delegateProxy = DelegateProxy()
         self.delegateProxy = delegateProxy
-        self.tusClient = try TUSClient(
-            server: tusBaseURL,
-            sessionIdentifier: "GigHiveTUS",
-            storageDirectory: URL(string: "TUS"),
-            session: session,
-            chunkSize: chunkSize,
-            supportedExtensions: [.creation],
-            reportingQueue: DispatchQueue.main,
-            generateHeaders: { [basicAuth] _, headers, completion in
-                var mutated = headers
-                if let basicAuth {
-                    let credentials = "\(basicAuth.user):\(basicAuth.pass)"
-                    let encoded = Data(credentials.utf8).base64EncodedString()
-                    mutated["Authorization"] = "Basic \(encoded)"
-                }
-                completion(mutated)
+        let headersBlock: HeaderGenerationHandler = { [basicAuth] _, headers, completion in
+            var mutated = headers
+            if let basicAuth {
+                let credentials = "\(basicAuth.user):\(basicAuth.pass)"
+                let encoded = Data(credentials.utf8).base64EncodedString()
+                mutated["Authorization"] = "Basic \(encoded)"
             }
-        )
+            completion(mutated)
+        }
+        if allowInsecure {
+            // DEPRECATED INIT INTENTIONAL: TUSKit's preferred init(server:sessionIdentifier:sessionConfiguration:...)
+            // constructs its own URLSession internally and does not accept a delegate, so InsecureTrustDelegate
+            // cannot be injected through it. The deprecated session:-based init is the only way to supply a
+            // custom URLSessionDelegate for TLS bypass on local dev instances.
+            // Refactor when TUSKit exposes a sessionDelegate: parameter on the sessionConfiguration: init,
+            // or when local dev servers are provisioned with a trusted certificate.
+            // See: gighiveinfra/docs/refactor_iphone_tuskit_inject_deprecation.md
+            let session = URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
+            self.tusClient = try TUSClient(
+                server: tusBaseURL,
+                sessionIdentifier: "GigHiveTUS",
+                storageDirectory: URL(string: "TUS"),
+                session: session,
+                chunkSize: chunkSize,
+                supportedExtensions: [.creation],
+                reportingQueue: DispatchQueue.main,
+                generateHeaders: headersBlock
+            )
+        } else {
+            self.tusClient = try TUSClient(
+                server: tusBaseURL,
+                sessionIdentifier: "GigHiveTUS",
+                sessionConfiguration: cfg,
+                storageDirectory: URL(string: "TUS"),
+                chunkSize: chunkSize,
+                supportedExtensions: [.creation],
+                reportingQueue: DispatchQueue.main,
+                generateHeaders: headersBlock
+            )
+        }
         self.tusClient.delegate = delegateProxy
         _ = self.tusClient.start()
     }

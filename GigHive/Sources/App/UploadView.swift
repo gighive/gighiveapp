@@ -1004,7 +1004,7 @@ struct UploadView: View {
                 // Show initial progress to let user know progress tracking is active
                 debugLog.append("0%..")
 
-                let (status, data, requestURL) = try await client.uploadWithMultipartInputStream(payload, progress: { completed, total in
+                let (status, data, _) = try await client.uploadWithMultipartInputStream(payload, progress: { completed, total in
                     // Special case: -1, -1 means Layer 1 assembly in progress (show dots)
                     if completed == -1 && total == -1 {
                         DispatchQueue.main.async {
