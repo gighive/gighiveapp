@@ -1,4 +1,34 @@
 ***
+releaseNotes20260705.txt
+Changes: Initial shared gallery implementation
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Configs/GigHive.entitlements
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	new file:   GigHive/Sources/App/FinalizeResponse.swift
+	new file:   GigHive/Sources/App/FinalizeResponseHandler.swift
+	modified:   GigHive/Sources/App/GigHiveApp.swift
+	new file:   GigHive/Sources/App/GuestUploadRecord.swift
+	new file:   GigHive/Sources/App/GuestUploadSession.swift
+	new file:   GigHive/Sources/App/GuestUploadView.swift
+	new file:   GigHive/Sources/App/QRTokenAPIClient 2.swift
+	new file:   GigHive/Sources/App/QRTokenAPIClient.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	modified:   GigHive/Sources/App/TUSUploadClient.swift
+	modified:   GigHive/Sources/App/UploadClient.swift
+	new file:   GigHive/Sources/App/UploadPayload+GuestUpload 2.swift
+	new file:   GigHive/Sources/App/UploadPayload+GuestUpload.swift
+	renamed:    GigHive/UploadStateStore.swift -> GigHive/Sources/App/UploadStateStore 2.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	modified:   GigHive/project.yml
+
+***
 releaseNotes20260619.txt
 Changes: delete request body key rename, MediaPlayerView — unreachable catch block, deprecated TUSClient init, UploadView — unused requestURL binding
 

@@ -51,34 +51,6 @@ struct UploadView: View {
     @State private var deleteErrorMessage: String? = nil
     @State private var showDeleteErrorAlert: Bool = false
 
-    private struct FinalizeResponse: Codable {
-        let id: Int
-        let fileName: String?
-        let fileType: String?
-        let mimeType: String?
-        let sizeBytes: Int?
-        let checksumSha256: String?
-        let eventDate: String?
-        let orgName: String?
-        let eventType: String?
-        let label: String?
-        let deleteToken: String?
-
-        enum CodingKeys: String, CodingKey {
-            case id
-            case fileName = "file_name"
-            case fileType = "file_type"
-            case mimeType = "mime_type"
-            case sizeBytes = "size_bytes"
-            case checksumSha256 = "checksum_sha256"
-            case eventDate = "event_date"
-            case orgName = "org_name"
-            case eventType = "event_type"
-            case label
-            case deleteToken = "delete_token"
-        }
-    }
-
     let onUpload: (UploadPayload) -> Void
     @Environment(\.openURL) private var openURL
 
@@ -1035,92 +1007,6 @@ struct UploadView: View {
                 debugLog.append("payload=org=\(orgName), type=\(eventType), label=\(label.isEmpty ? "(nil)" : label)")
                 debugLog.append("upload finished [\(status)]")
                 let bodyText = String(data: data, encoding: .utf8) ?? "(no body)"
-
-                let extractJSONCandidate: (String) -> String? = { text in
-                    // Prefer extracting JSON from <pre>...</pre> when server wraps JSON in HTML.
-                    if let preRange = text.range(of: "<pre", options: .caseInsensitive) {
-                        let tail = text[preRange.lowerBound...]
-                        if let gt = tail.firstIndex(of: ">") {
-                            let after = tail.index(after: gt)
-                            let rest = String(tail[after...])
-                            if let endPreRange = rest.range(of: "</pre>", options: .caseInsensitive) {
-                                let inner = String(rest[..<endPreRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-                                if let start = inner.firstIndex(of: "{"), let end = inner.lastIndex(of: "}"), start <= end {
-                                    logWithTimestamp("[UploadView] Extracted JSON from <pre> block")
-                                    return String(inner[start...end])
-                                }
-                            }
-                        }
-                    }
-
-                    // If the HTML contains CSS (e.g. style blocks), naive "first { ... }" matching will
-                    // often capture CSS braces, not JSON. Anchor extraction around "id" or "delete_token".
-                    let anchorKeys = ["\"delete_token\"", "\"id\""]
-                    let lower = text
-                    var anchorIndex: String.Index? = nil
-                    for k in anchorKeys {
-                        if let r = lower.range(of: k, options: .caseInsensitive) {
-                            anchorIndex = r.lowerBound
-                            break
-                        }
-                    }
-
-                    guard let a = anchorIndex else {
-                        logWithTimestamp("[UploadView] No JSON anchor (id/delete_token) found in finalize body")
-                        return nil
-                    }
-
-                    // Walk backwards to a '{' and then brace-match forward to a full JSON object.
-                    var startIdx = a
-                    while startIdx > lower.startIndex {
-                        let prev = lower.index(before: startIdx)
-                        if lower[prev] == "{" {
-                            startIdx = prev
-                            break
-                        }
-                        startIdx = prev
-                    }
-                    if lower[startIdx] != "{" {
-                        logWithTimestamp("[UploadView] Could not find '{' before JSON anchor")
-                        return nil
-                    }
-
-                    let chars = Array(lower[startIdx...])
-                    var depth = 0
-                    var inString = false
-                    var escape = false
-                    for j in 0..<chars.count {
-                        let c = chars[j]
-                        if inString {
-                            if escape {
-                                escape = false
-                            } else if c == "\\" {
-                                escape = true
-                            } else if c == "\"" {
-                                inString = false
-                            }
-                            continue
-                        }
-
-                        if c == "\"" {
-                            inString = true
-                            continue
-                        }
-                        if c == "{" {
-                            depth += 1
-                        } else if c == "}" {
-                            depth -= 1
-                            if depth == 0 {
-                                let candidate = String(chars[0...j])
-                                logWithTimestamp("[UploadView] Extracted JSON via anchor brace-match (len=\(candidate.count))")
-                                return candidate
-                            }
-                        }
-                    }
-
-                    logWithTimestamp("[UploadView] Anchor brace-match did not find a balanced JSON object")
-                    return nil
-                }
 
                 switch status {
                 case 200, 201:

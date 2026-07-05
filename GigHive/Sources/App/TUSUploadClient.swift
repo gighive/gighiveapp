@@ -5,15 +5,17 @@ import TUSKit
 final class TUSUploadClient {
     private let tusBaseURL: URL
     private let basicAuth: (user: String, pass: String)?
+    private let uploadToken: String?
     private let chunkSize: Int
 
     private let tusClient: TUSClient
     private let delegateProxy: DelegateProxy
     private var currentUploadID: UUID?
 
-    init(tusBaseURL: URL, basicAuth: (user: String, pass: String)?, allowInsecure: Bool, chunkSize: Int = 5 * 1024 * 1024) throws {
+    init(tusBaseURL: URL, basicAuth: (user: String, pass: String)?, uploadToken: String? = nil, allowInsecure: Bool, chunkSize: Int = 5 * 1024 * 1024) throws {
         self.tusBaseURL = tusBaseURL
         self.basicAuth = basicAuth
+        self.uploadToken = uploadToken
         self.chunkSize = chunkSize
 
         let cfg = URLSessionConfiguration.ephemeral
@@ -28,9 +30,11 @@ final class TUSUploadClient {
 
         let delegateProxy = DelegateProxy()
         self.delegateProxy = delegateProxy
-        let headersBlock: HeaderGenerationHandler = { [basicAuth] _, headers, completion in
+        let headersBlock: HeaderGenerationHandler = { [basicAuth, uploadToken] _, headers, completion in
             var mutated = headers
-            if let basicAuth {
+            if let uploadToken {
+                mutated["X-Upload-Token"] = uploadToken
+            } else if let basicAuth {
                 let credentials = "\(basicAuth.user):\(basicAuth.pass)"
                 let encoded = Data(credentials.utf8).base64EncodedString()
                 mutated["Authorization"] = "Basic \(encoded)"

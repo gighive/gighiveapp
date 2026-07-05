@@ -37,7 +37,7 @@ targets:
         UIStatusBarStyle: UIStatusBarStyleDefault
         UIViewControllerBasedStatusBarAppearance: false
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.gighive.GigHive
+      PRODUCT_BUNDLE_IDENTIFIER: app.gighive.GigHive
       PRODUCT_NAME: GigHive
       SWIFT_VERSION: 5.9
       CODE_SIGN_STYLE: Automatic
@@ -57,7 +57,7 @@ targets:
     info:
       path: Sources/ShareExtension/Info.plist
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.gighive.GigHive.Share
+      PRODUCT_BUNDLE_IDENTIFIER: app.gighive.GigHive.Share
       PRODUCT_NAME: GigHiveShare
       SWIFT_VERSION: 5.9
       CODE_SIGN_STYLE: Automatic

@@ -13,6 +13,8 @@ struct UploadPayload {
     var location: String?
     var rating: String?
     var notes: String?
+    var displayName: String? = nil
+    var tosAccepted: Bool = false
 }
 
 // Insecure trust delegate — accepts any TLS certificate. Use ONLY when user opts in.
@@ -73,12 +75,14 @@ final class UploadClient {
     let session: URLSession
     let basicAuth: (user: String, pass: String)?
     let allowInsecure: Bool
+    let uploadToken: String?
     private var currentNetworkClient: NetworkProgressUploadClient?
     private var currentTusClient: TUSUploadClient?
 
-    init(baseURL: URL, basicAuth: (String,String)? = nil, useBackgroundSession: Bool = false, allowInsecure: Bool = false) {
+    init(baseURL: URL, basicAuth: (String,String)? = nil, uploadToken: String? = nil, useBackgroundSession: Bool = false, allowInsecure: Bool = false) {
         self.baseURL = baseURL
         self.basicAuth = basicAuth
+        self.uploadToken = uploadToken
         self.allowInsecure = allowInsecure
         if useBackgroundSession {
             // Note: background sessions are not supported in app extensions.
@@ -125,7 +129,8 @@ final class UploadClient {
         logWithTimestamp("🌐 [UploadClient] tusBaseURL=\(tusBaseURL.absoluteString)")
         let tusClient = try TUSUploadClient(
             tusBaseURL: tusBaseURL,
-            basicAuth: basicAuth.map { (user: $0.user, pass: $0.pass) },
+            basicAuth: uploadToken == nil ? basicAuth.map { (user: $0.user, pass: $0.pass) } : nil,
+            uploadToken: uploadToken,
             allowInsecure: allowInsecure
         )
         self.currentTusClient = tusClient
@@ -135,7 +140,7 @@ final class UploadClient {
             logWithTimestamp("✅ [UploadClient] TUS upload finished, uploadURL=\(uploadURL.absoluteString)")
             let uploadID = uploadURL.lastPathComponent
             logWithTimestamp("🔎 [UploadClient] Extracted upload_id=\(uploadID)")
-            let mergedPayload = UploadPayload(
+            var mergedPayload = UploadPayload(
                 fileURL: payload.fileURL,
                 eventDate: payload.eventDate,
                 orgName: payload.orgName,
@@ -147,6 +152,8 @@ final class UploadClient {
                 rating: payload.rating,
                 notes: payload.notes
             )
+            mergedPayload.displayName = payload.displayName
+            mergedPayload.tosAccepted = payload.tosAccepted
             logWithTimestamp("📦 [UploadClient] Finalizing TUS upload")
             let result = try await finalizeTusUpload(uploadID: uploadID, payload: mergedPayload)
             logWithTimestamp("🏁 [UploadClient] Finalize finished [\(result.status)]")
@@ -181,6 +188,11 @@ final class UploadClient {
         if let rating = payload.rating { body["rating"] = rating }
         if let notes = payload.notes { body["notes"] = notes }
 
+        if uploadToken != nil {
+            if let displayName = payload.displayName { body["display_name"] = displayName }
+            body["tos_accepted"] = payload.tosAccepted
+        }
+
         let json = try JSONSerialization.data(withJSONObject: body, options: [])
 
         var request = URLRequest(url: finalizeURL)
@@ -188,7 +200,11 @@ final class UploadClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
 
-        if let auth = basicAuth {
+        if let token = uploadToken {
+            request.setValue(token, forHTTPHeaderField: "X-Upload-Token")
+        }
+
+        if uploadToken == nil, let auth = basicAuth {
             let credentials = "\(auth.user):\(auth.pass)"
             let encoded = Data(credentials.utf8).base64EncodedString()
             request.setValue("Basic \(encoded)", forHTTPHeaderField: "Authorization")

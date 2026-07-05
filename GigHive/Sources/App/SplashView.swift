@@ -2,9 +2,11 @@ import SwiftUI
 
 struct SplashView: View {
     @EnvironmentObject var session: AuthSession
+    @EnvironmentObject var guestSession: GuestUploadSession
     @State private var goToLogin = false
     @State private var goToDatabase = false
     @State private var goToUpload = false
+    @State private var goToGuestUpload = false
 
     var body: some View {
         ZStack {
@@ -86,6 +88,9 @@ struct SplashView: View {
             }), isActive: $goToUpload) { EmptyView() }
                 .frame(width: 0, height: 0)
                 .hidden()
+            NavigationLink(destination: GuestUploadView(), isActive: $goToGuestUpload) { EmptyView() }
+                .frame(width: 0, height: 0)
+                .hidden()
             // goToDatabase no longer used with direct NavigationLink above but keep for safety
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -93,11 +98,22 @@ struct SplashView: View {
             .ghFullScreenBackground(GHTheme.bg)
             .onAppear { 
                 logWithTimestamp("[Splash] appeared; loggedIn=\(session.credentials != nil)")
-                if session.credentials != nil, session.intendedRoute == .upload {
+                if guestSession.rawToken != nil {
+                    logWithTimestamp("[Splash] Guest token present, navigating to GuestUploadView")
+                    goToGuestUpload = true
+                } else if session.credentials != nil, session.intendedRoute == .upload {
                     logWithTimestamp("[Splash] Auto-navigating to Upload after login")
                     goToUpload = true
                     // Clear intended route so that Back from Upload returns to Splash cleanly
                     session.intendedRoute = nil
+                }
+            }
+            .onChange(of: guestSession.rawToken) { token in
+                if token != nil {
+                    logWithTimestamp("[Splash] Guest token set while app open, navigating to GuestUploadView")
+                    goToGuestUpload = true
+                } else {
+                    goToGuestUpload = false
                 }
             }
             .onChange(of: goToLogin) { newVal in logWithTimestamp("[Splash] goToLogin=\(newVal)") }
@@ -122,5 +138,6 @@ struct SplashView_Previews: PreviewProvider {
         SplashView()
             .environmentObject(AuthSession())
             .environmentObject(UploadStateStore())
+            .environmentObject(GuestUploadSession())
     }
 }

@@ -46,8 +46,14 @@
 		C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */; };
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
 		D38827C03AABB0678A73D6D6 /* UploadFormView.swift.backup-deleted in Resources */ = {isa = PBXBuildFile; fileRef = F558742AC8F68A3960F66C78 /* UploadFormView.swift.backup-deleted */; };
+		D86EF2A52FF1947E00065ADB /* GuestUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86EF2A42FF1947E00065ADB /* GuestUploadView.swift */; };
+		D86EF2A62FF1947E00065ADB /* GuestUploadSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86EF2A32FF1947E00065ADB /* GuestUploadSession.swift */; };
+		D86EF2A72FF1947E00065ADB /* FinalizeResponseHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86EF2A22FF1947E00065ADB /* FinalizeResponseHandler.swift */; };
+		D86EF2A82FF1947E00065ADB /* FinalizeResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86EF2A12FF1947E00065ADB /* FinalizeResponse.swift */; };
+		D86EF2AD2FF1958000065ADB /* QRTokenAPIClient 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86EF2A92FF1958000065ADB /* QRTokenAPIClient 2.swift */; };
+		D86EF2AE2FF1958000065ADB /* UploadPayload+GuestUpload 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D86EF2AA2FF1958000065ADB /* UploadPayload+GuestUpload 2.swift */; };
 		D8C6D55B2F65FC1700C85A56 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8C6D55A2F65FC1700C85A56 /* AppVersion.swift */; };
-		D8E1CB342F670D6C00557F3C /* UploadStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1CB332F670D6C00557F3C /* UploadStateStore.swift */; };
+		D8E1CB342F670D6C00557F3C /* UploadStateStore 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E1CB332F670D6C00557F3C /* UploadStateStore 2.swift */; };
 		DE2E22F117C7982666FF1CC1 /* TitleHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15373040C6F22CB5C17F42D3 /* TitleHeaderView.swift */; };
 		EA4820199948EC30E4B358D9 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2F3075629A234B4E841E5B7 /* SplashView.swift */; };
 		ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */; };
@@ -98,8 +104,14 @@
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		D137AB45BA08DC9E59CBB67B /* UploadClient.swift.backup-before-rename */ = {isa = PBXFileReference; lastKnownFileType = text; path = "UploadClient.swift.backup-before-rename"; sourceTree = "<group>"; };
 		D3055290AEEA5443F286065A /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		D86EF2A12FF1947E00065ADB /* FinalizeResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalizeResponse.swift; sourceTree = "<group>"; };
+		D86EF2A22FF1947E00065ADB /* FinalizeResponseHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalizeResponseHandler.swift; sourceTree = "<group>"; };
+		D86EF2A32FF1947E00065ADB /* GuestUploadSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestUploadSession.swift; sourceTree = "<group>"; };
+		D86EF2A42FF1947E00065ADB /* GuestUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestUploadView.swift; sourceTree = "<group>"; };
+		D86EF2A92FF1958000065ADB /* QRTokenAPIClient 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "QRTokenAPIClient 2.swift"; sourceTree = "<group>"; };
+		D86EF2AA2FF1958000065ADB /* UploadPayload+GuestUpload 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UploadPayload+GuestUpload 2.swift"; sourceTree = "<group>"; };
 		D8C6D55A2F65FC1700C85A56 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
-		D8E1CB332F670D6C00557F3C /* UploadStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadStateStore.swift; sourceTree = "<group>"; };
+		D8E1CB332F670D6C00557F3C /* UploadStateStore 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UploadStateStore 2.swift"; sourceTree = "<group>"; };
 		DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		DBDF0F32EC8803BB48D74E56 /* PickerBridges.swift.backup */ = {isa = PBXFileReference; lastKnownFileType = text; path = PickerBridges.swift.backup; sourceTree = "<group>"; };
 		DCB48CD79DA5D49B822B427D /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
@@ -155,6 +167,10 @@
 				5C2EB7F2D108852520CA7085 /* DatabaseModels.swift */,
 				E335CC3B564F898AC4688953 /* DatabaseView.swift */,
 				7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */,
+				D86EF2A12FF1947E00065ADB /* FinalizeResponse.swift */,
+				D86EF2A22FF1947E00065ADB /* FinalizeResponseHandler.swift */,
+				D86EF2A32FF1947E00065ADB /* GuestUploadSession.swift */,
+				D86EF2A42FF1947E00065ADB /* GuestUploadView.swift */,
 				DCB48CD79DA5D49B822B427D /* KeychainStore.swift */,
 				5A6B7C8D9E0F112233445566 /* UploaderDeleteTokenStore.swift */,
 				4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */,
@@ -188,6 +204,9 @@
 				97958D4B4697F76A2E7B0139 /* UploadView.swift.backup-progress-fix */,
 				C2FF1D9AEFB2EA869AE67058 /* UploadView.swift.backup-progress-tracking */,
 				DF40D9F15525E087DFDD6CE8 /* UploadView.swift.backup-upload-progress */,
+				D86EF2AA2FF1958000065ADB /* UploadPayload+GuestUpload 2.swift */,
+				D86EF2A92FF1958000065ADB /* QRTokenAPIClient 2.swift */,
+				D8E1CB332F670D6C00557F3C /* UploadStateStore 2.swift */,
 			);
 			name = App;
 			path = Sources/App;
@@ -196,7 +215,6 @@
 		EF3F9E81C200EBB9D290A609 = {
 			isa = PBXGroup;
 			children = (
-				D8E1CB332F670D6C00557F3C /* UploadStateStore.swift */,
 				D8C6D55A2F65FC1700C85A56 /* AppVersion.swift */,
 				E2BD80677E697C313615AB9A /* Assets.xcassets */,
 				688C093A5F5BE143D3054F19 /* App */,
@@ -318,11 +336,13 @@
 			files = (
 				2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */,
 				5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */,
-				D8E1CB342F670D6C00557F3C /* UploadStateStore.swift in Sources */,
+				D8E1CB342F670D6C00557F3C /* UploadStateStore 2.swift in Sources */,
 				00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */,
 				C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */,
 				3CF85F5B751987188D075143 /* DatabaseModels.swift in Sources */,
 				076B6EFE3F8621F7B74A514D /* DatabaseView.swift in Sources */,
+				D86EF2AD2FF1958000065ADB /* QRTokenAPIClient 2.swift in Sources */,
+				D86EF2AE2FF1958000065ADB /* UploadPayload+GuestUpload 2.swift in Sources */,
 				BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */,
 				6B9A720746569E11A7E84C24 /* KeychainStore.swift in Sources */,
 				1A2B3C4D5E6F708192A3B4C5 /* UploaderDeleteTokenStore.swift in Sources */,
@@ -337,6 +357,10 @@
 				8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */,
 				D8C6D55B2F65FC1700C85A56 /* AppVersion.swift in Sources */,
 				976BF94829F092409E37B53E /* ShareHelper.swift in Sources */,
+				D86EF2A52FF1947E00065ADB /* GuestUploadView.swift in Sources */,
+				D86EF2A62FF1947E00065ADB /* GuestUploadSession.swift in Sources */,
+				D86EF2A72FF1947E00065ADB /* FinalizeResponseHandler.swift in Sources */,
+				D86EF2A82FF1947E00065ADB /* FinalizeResponse.swift in Sources */,
 				EA4820199948EC30E4B358D9 /* SplashView.swift in Sources */,
 				ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */,
 				4CC143BC0546FAE655D2C6DC /* Theme.swift in Sources */,
