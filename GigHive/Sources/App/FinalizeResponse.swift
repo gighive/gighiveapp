@@ -12,6 +12,8 @@ struct FinalizeResponse: Codable {
     let eventType: String?
     let label: String?
     let deleteToken: String?
+    let statusNonce: String?
+    let uploadJobId: Int?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -25,5 +27,7 @@ struct FinalizeResponse: Codable {
         case eventType = "event_type"
         case label
         case deleteToken = "delete_token"
+        case statusNonce = "status_nonce"
+        case uploadJobId = "upload_job_id"
     }
 }

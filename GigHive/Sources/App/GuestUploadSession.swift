@@ -23,13 +23,16 @@ final class GuestUploadSession: ObservableObject {
     @Published var baseURL: URL?
     @Published var eventDetails: QREventDetails?
     @Published var displayName: String = ""
+    @Published var clipLabel: String = ""
     @Published var tosAccepted: Bool = false
+    @Published var recentUploadSuccess: Bool = false
 
     func clear() {
         rawToken = nil
         baseURL = nil
         eventDetails = nil
         displayName = ""
+        clipLabel = ""
         tosAccepted = false
     }
 }

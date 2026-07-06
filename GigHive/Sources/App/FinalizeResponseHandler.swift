@@ -1,18 +1,32 @@
 import Foundation
 
+/// Decodes common HTML entities in a string (e.g. &quot; → ").
+private func htmlEntityDecode(_ s: String) -> String {
+    var r = s
+    r = r.replacingOccurrences(of: "&quot;", with: "\"")
+    r = r.replacingOccurrences(of: "&amp;",  with: "&")
+    r = r.replacingOccurrences(of: "&lt;",   with: "<")
+    r = r.replacingOccurrences(of: "&gt;",   with: ">")
+    r = r.replacingOccurrences(of: "&#39;",  with: "'")
+    r = r.replacingOccurrences(of: "&apos;", with: "'")
+    return r
+}
+
 /// Extracts a JSON object string from a response body that may be wrapped in HTML.
 /// Returns nil if no balanced JSON object containing known keys can be found.
 func extractJSONCandidate(_ text: String) -> String? {
     // Prefer extracting JSON from <pre>...</pre> when server wraps JSON in HTML.
+    // The <pre> content may be HTML-entity-encoded (e.g. &quot; for "), so decode first.
     if let preRange = text.range(of: "<pre", options: .caseInsensitive) {
         let tail = text[preRange.lowerBound...]
         if let gt = tail.firstIndex(of: ">") {
             let after = tail.index(after: gt)
             let rest = String(tail[after...])
             if let endPreRange = rest.range(of: "</pre>", options: .caseInsensitive) {
-                let inner = String(rest[..<endPreRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let raw = String(rest[..<endPreRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let inner = htmlEntityDecode(raw)
                 if let start = inner.firstIndex(of: "{"), let end = inner.lastIndex(of: "}"), start <= end {
-                    logWithTimestamp("[FinalizeResponseHandler] Extracted JSON from <pre> block")
+                    logWithTimestamp("[FinalizeResponseHandler] Extracted JSON from <pre> block (entity-decoded)")
                     return String(inner[start...end])
                 }
             }

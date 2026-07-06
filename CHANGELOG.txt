@@ -1,5 +1,10 @@
 ***
 releaseNotes20260705.txt
+Changes: Shared gallery Phase 1/2 infrastructure implementation
+
+
+***
+releaseNotes20260705.txt
 Changes: Initial shared gallery implementation
 
 macbook2025:gighiveapp sodo$ git status

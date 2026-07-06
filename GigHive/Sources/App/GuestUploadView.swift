@@ -65,16 +65,15 @@ struct GuestUploadView: View {
                     }
 
                 } else if guestSession.rawToken == nil && !isUploading {
-                    // Post-upload thank-you state (after guestSession.clear())
                     GHCard(pad: 12) {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Upload received — thank you!")
                                 .font(.headline)
                                 .ghForeground(GHTheme.text)
-                            Text("Your video has been submitted to the event organizer.")
+                            Text("Your video is going into a queue for review. You will typically be notified in the app within 24\u{2013}48 hours once the event organizer has reviewed your submission. After which, you will be able to see your video along with all the other videos individuals like yourself have captured during the event. Please return to the app within 24\u{2013}48 hours to check on status.")
                                 .font(.subheadline)
                                 .ghForeground(GHTheme.muted)
-                            Button("Dismiss") {
+                            Button("Done") {
                                 presentationMode.wrappedValue.dismiss()
                             }
                             .buttonStyle(GHButtonStyle(color: GHTheme.accent))
@@ -102,7 +101,7 @@ struct GuestUploadView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 4) {
-                                GHLabel(text: "Your name (optional)")
+                                GHLabel(text: "Your name *")
                                 NoAccessoryTextField(
                                     text: $guestSession.displayName,
                                     placeholder: "e.g. Jane Smith",
@@ -121,6 +120,29 @@ struct GuestUploadView: View {
                                 .cornerRadius(6)
                             }
 
+                            VStack(alignment: .leading, spacing: 4) {
+                                GHLabel(text: "Clip label (optional)")
+                                NoAccessoryTextField(
+                                    text: $guestSession.clipLabel,
+                                    placeholder: "e.g. First song, Crowd shot",
+                                    keyboardType: .default,
+                                    autocapitalizationType: .sentences,
+                                    autocorrectionType: .default
+                                )
+                                .onChange(of: guestSession.clipLabel) { value in
+                                    if value.count > 255 {
+                                        guestSession.clipLabel = String(value.prefix(255))
+                                    }
+                                }
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .ghBackgroundMaterial()
+                                .cornerRadius(6)
+                                Text("Files are stored under a unique name for privacy. Your label helps you identify the clip in the gallery.")
+                                    .font(.caption2)
+                                    .ghForeground(GHTheme.muted)
+                            }
+
                             Toggle(isOn: $guestSession.tosAccepted) {
                                 VStack(alignment: .leading, spacing: 2) {
                                     GHLabel(text: "I accept the Terms of Service *")
@@ -130,6 +152,11 @@ struct GuestUploadView: View {
                                 }
                             }
                             .ghTint(GHTheme.accent)
+
+                            Text("You’re on the honor system — please don’t upload abusive, pornographic, violent, or otherwise inappropriate content. Uploads are reviewed by the event organizer and may be removed.")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                                .padding(.vertical, 4)
 
                             VStack(alignment: .leading, spacing: 6) {
                                 GHLabel(text: "Video file *")
@@ -180,7 +207,7 @@ struct GuestUploadView: View {
                                 Task { await doUpload() }
                             }
                             .buttonStyle(GHButtonStyle(color: GHTheme.accent))
-                            .disabled(isUploading || fileURL == nil || !guestSession.tosAccepted)
+                            .disabled(isUploading || fileURL == nil || !guestSession.tosAccepted || guestSession.displayName.trimmingCharacters(in: .whitespaces).isEmpty)
                             .padding(.top, 2)
 
                             if !isUploading {
@@ -207,6 +234,9 @@ struct GuestUploadView: View {
         // .onAppear fires on first appearance; .onChange re-fires when rawToken changes
         // (e.g. user scans a second QR code while GuestUploadView is already on the stack).
         .onAppear {
+            if guestSession.displayName.isEmpty {
+                guestSession.displayName = UIDevice.current.name
+            }
             Task { await validateToken() }
         }
         .onChange(of: guestSession.rawToken) { _ in
@@ -258,6 +288,7 @@ struct GuestUploadView: View {
 
     private func missingFields() -> [String] {
         var msgs: [String] = []
+        if guestSession.displayName.trimmingCharacters(in: .whitespaces).isEmpty { msgs.append("Please enter your name") }
         if !guestSession.tosAccepted { msgs.append("Please accept the Terms of Service") }
         if fileURL == nil { msgs.append("Please select a video file") }
         return msgs
@@ -274,7 +305,8 @@ struct GuestUploadView: View {
         let payload = UploadPayload.forGuestUpload(
             fileURL: fileURL,
             eventDetails: eventDetails,
-            displayName: guestSession.displayName
+            displayName: guestSession.displayName,
+            clipLabel: guestSession.clipLabel
         )
 
         let client = UploadClient(
@@ -312,29 +344,21 @@ struct GuestUploadView: View {
         }
     }
 
+    @MainActor
     private func handleFinalizeResponse(status: Int, data: Data, host: String) {
         switch status {
         case 200, 201:
-            if let resp = try? JSONDecoder().decode(FinalizeResponse.self, from: data) {
-                let token = resp.deleteToken?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                if !token.isEmpty, !host.isEmpty {
-                    let entry = UploadedFileTokenEntry(
-                        fileId: resp.id,
-                        deleteToken: token,
-                        createdAt: Date(),
-                        eventDate: resp.eventDate ?? "",
-                        orgName: resp.orgName ?? "",
-                        eventType: resp.eventType ?? "",
-                        label: resp.label,
-                        fileName: resp.fileName,
-                        fileType: resp.fileType
-                    )
-                    try? UploaderDeleteTokenStore.upsert(host: host, entry: entry)
-                }
-            } else if let bodyText = String(data: data, encoding: .utf8),
+            let rawBody = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+            logWithTimestamp("[GuestUpload] Finalize raw body: \(rawBody)")
+            let resp: FinalizeResponse? = {
+                if let r = try? JSONDecoder().decode(FinalizeResponse.self, from: data) { return r }
+                guard let bodyText = String(data: data, encoding: .utf8),
                       let candidate = extractJSONCandidate(bodyText),
-                      let candData = candidate.data(using: .utf8),
-                      let resp = try? JSONDecoder().decode(FinalizeResponse.self, from: candData) {
+                      let candData = candidate.data(using: .utf8) else { return nil }
+                return try? JSONDecoder().decode(FinalizeResponse.self, from: candData)
+            }()
+            logWithTimestamp("[GuestUpload] Finalize decoded: resp=\(resp != nil), statusNonce=\(resp?.statusNonce ?? "nil"), uploadJobId=\(resp?.uploadJobId.map { String($0) } ?? "nil")")
+            if let resp = resp {
                 let token = resp.deleteToken?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 if !token.isEmpty, !host.isEmpty {
                     let entry = UploadedFileTokenEntry(
@@ -350,8 +374,30 @@ struct GuestUploadView: View {
                     )
                     try? UploaderDeleteTokenStore.upsert(host: host, entry: entry)
                 }
+                if let nonce = resp.statusNonce, let jobId = resp.uploadJobId {
+                    let eventName = guestSession.eventDetails
+                        .map { "\($0.orgName) — \($0.eventDate)" } ?? "Event"
+                    let record = GuestUploadRecord(
+                        statusNonce: nonce,
+                        uploadJobId: jobId,
+                        eventName: eventName,
+                        submittedAt: Date(),
+                        baseURLString: guestSession.baseURL?.absoluteString ?? "",
+                        approvalStatus: "pending",
+                        lastSeenVideoCount: 0,
+                        viewedUploadJobIds: [],
+                        daysRemaining: nil
+                    )
+                    GuestUploadRecord.upsert(record)
+                    logWithTimestamp("[GuestUpload] GuestUploadRecord upserted: nonce=\(nonce) jobId=\(jobId) baseURL=\(guestSession.baseURL?.absoluteString ?? "nil")")
+                } else {
+                    logWithTimestamp("[GuestUpload] ⚠️ statusNonce or uploadJobId missing — record NOT persisted")
+                }
+            } else {
+                logWithTimestamp("[GuestUpload] ⚠️ FinalizeResponse decode failed entirely")
             }
             guestSession.clear()
+            guestSession.recentUploadSuccess = true
         case 404:
             alertTitle = "Link Expired"
             alertMessage = "This upload link is no longer valid. Please ask the event organizer for a new QR code."
