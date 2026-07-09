@@ -1,7 +1,56 @@
 ***
+releaseNotes20260709.txt
+Changes: Add qr guest uploader delete feature
+
+
+***
 releaseNotes20260705.txt
 Changes: Shared gallery Phase 1/2 infrastructure implementation
 
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	deleted:    GigHive/AppVersion.swift
+	modified:   GigHive/Configs/AppInfo.plist
+	modified:   GigHive/Configs/GigHive.entitlements
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHive.xcscheme
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHiveShare.xcscheme
+	modified:   GigHive/Sources/App/FinalizeResponse.swift
+	modified:   GigHive/Sources/App/FinalizeResponseHandler.swift
+	modified:   GigHive/Sources/App/GigHiveApp.swift
+	new file:   GigHive/Sources/App/GuestGalleryAPIClient.swift
+	new file:   GigHive/Sources/App/GuestGalleryView.swift
+	modified:   GigHive/Sources/App/GuestUploadRecord.swift
+	modified:   GigHive/Sources/App/GuestUploadSession.swift
+	modified:   GigHive/Sources/App/GuestUploadView.swift
+	deleted:    GigHive/Sources/App/NetworkProgressUploadClient.swift.backup-before-async
+	deleted:    GigHive/Sources/App/PickerBridges.swift.backup
+	deleted:    GigHive/Sources/App/PickerBridges.swift.backup-progress-tracking
+	deleted:    GigHive/Sources/App/QRTokenAPIClient 2.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	deleted:    GigHive/Sources/App/TUSUploadClient_Clean.swift.backup-deleted
+	deleted:    GigHive/Sources/App/UploadClient.swift.backup-before-async
+	deleted:    GigHive/Sources/App/UploadClient.swift.backup-before-cleanup
+	deleted:    GigHive/Sources/App/UploadClient.swift.backup-before-collapse
+	deleted:    GigHive/Sources/App/UploadClient.swift.backup-before-rename
+	deleted:    GigHive/Sources/App/UploadClient.swift.backup-continuation-fix
+	deleted:    GigHive/Sources/App/UploadFormView.swift.backup-deleted
+	deleted:    GigHive/Sources/App/UploadPayload+GuestUpload 2.swift
+	modified:   GigHive/Sources/App/UploadPayload+GuestUpload.swift
+	deleted:    GigHive/Sources/App/UploadStateStore 2.swift
+	deleted:    GigHive/Sources/App/UploadView.swift.backup
+	deleted:    GigHive/Sources/App/UploadView.swift.backup-progress-fix
+	deleted:    GigHive/Sources/App/UploadView.swift.backup-progress-tracking
+	deleted:    GigHive/Sources/App/UploadView.swift.backup-upload-progress
+	modified:   GigHive/Sources/ShareExtension/Info.plist
+	modified:   GigHive/project.yml
+	new file:   consoleLog.txt
+	new file:   consoleLogDevModeOffThenOn.txt
 
 ***
 releaseNotes20260705.txt

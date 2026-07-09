@@ -125,4 +125,22 @@ final class GuestGalleryAPIClient {
         if code == 403 { throw GuestGalleryError.accessDenied }
         guard code == 200 else { throw GuestGalleryError.badServer(code) }
     }
+
+    func deleteVideo(nonce: String, uploadJobId: Int) async throws {
+        let url = baseURL
+            .appendingPathComponent("api")
+            .appendingPathComponent("guest-delete.php")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "nonce": nonce,
+            "upload_job_id": uploadJobId
+        ])
+        let (_, response) = try await URLSession.shared.data(for: request)
+        let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+        if code == 403 { throw GuestGalleryError.accessDenied }
+        guard code == 200 else { throw GuestGalleryError.badServer(code) }
+    }
 }

@@ -4,6 +4,8 @@ import AVKit
 private enum GalleryAlert {
     case reportConfirm(GuestGalleryVideo)
     case reportFeedback(String)
+    case deleteConfirm(GuestGalleryVideo)
+    case deleteFeedback(String)
     case error(String)
 }
 
@@ -15,6 +17,8 @@ struct GuestGalleryView: View {
     @State private var errorMessage: String?
     @State private var activeAlert: GalleryAlert?
     @State private var viewedIds: Set<Int> = []
+    @State private var reportedIds: Set<Int> = []
+    @State private var deletedIds: Set<Int> = []
 
     private var alertBinding: Binding<Bool> {
         Binding(get: { activeAlert != nil }, set: { if !$0 { activeAlert = nil } })
@@ -98,7 +102,7 @@ struct GuestGalleryView: View {
                                 .font(.caption)
                                 .ghForeground(GHTheme.muted)
                         }
-                        ForEach(resp.videos) { video in
+                        ForEach(resp.videos.filter { !deletedIds.contains($0.uploadJobId) }) { video in
                             GHCard(pad: 10) {
                                 HStack(alignment: .center, spacing: 12) {
                                     VStack(alignment: .leading, spacing: 4) {
@@ -137,9 +141,18 @@ struct GuestGalleryView: View {
                                     Button {
                                         activeAlert = .reportConfirm(video)
                                     } label: {
-                                        Image(systemName: "flag")
+                                        Image(systemName: reportedIds.contains(video.uploadJobId) ? "flag.fill" : "flag")
                                             .font(.title3)
                                             .foregroundColor(.orange)
+                                    }
+                                    if video.uploadJobId == record.uploadJobId {
+                                        Button {
+                                            activeAlert = .deleteConfirm(video)
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.title3)
+                                                .foregroundColor(.red)
+                                        }
                                     }
                                 }
                             }
@@ -221,7 +234,23 @@ struct GuestGalleryView: View {
                 nonce: record.statusNonce,
                 uploadJobId: video.uploadJobId
             )
+            reportedIds.insert(video.uploadJobId)
             activeAlert = .reportFeedback("Thank you. The event organizer will review your report.")
+        } catch {
+            activeAlert = .error(error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func performDelete(video: GuestGalleryVideo) async {
+        guard let baseURL = URL(string: record.baseURLString) else { return }
+        do {
+            try await GuestGalleryAPIClient(baseURL: baseURL).deleteVideo(
+                nonce: record.statusNonce,
+                uploadJobId: video.uploadJobId
+            )
+            deletedIds.insert(video.uploadJobId)
+            activeAlert = .deleteFeedback("Your video has been removed from the gallery.")
         } catch {
             activeAlert = .error(error.localizedDescription)
         }
@@ -241,6 +270,21 @@ struct GuestGalleryView: View {
         case .reportFeedback(let msg):
             return Alert(
                 title: Text("Report submitted"),
+                message: Text(msg),
+                dismissButton: .default(Text("OK"))
+            )
+        case .deleteConfirm(let video):
+            return Alert(
+                title: Text("Delete your video?"),
+                message: Text("This removes your clip from the gallery. You'll still have access to view other videos."),
+                primaryButton: .destructive(Text("Delete")) {
+                    Task { await performDelete(video: video) }
+                },
+                secondaryButton: .cancel()
+            )
+        case .deleteFeedback(let msg):
+            return Alert(
+                title: Text("Video removed"),
                 message: Text(msg),
                 dismissButton: .default(Text("OK"))
             )

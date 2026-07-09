@@ -268,11 +268,11 @@ struct SplashView: View {
             VStack {
                 Spacer()
                 HStack {
-                    Spacer()
                     Text(AppVersion.versionString)
                         .font(.caption2)
                         .foregroundColor(.red)
                         .padding(8)
+                    Spacer()
                 }
             }
         }
