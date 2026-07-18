@@ -388,7 +388,7 @@ struct UploadView: View {
                                             .foregroundColor(.orange)
                                             .bold()
                                     }
-                                    Text("Feel free to use other apps, your upload will continue in the background.")
+                                    Text("Do not navigate away from this page or your upload will be cancelled.")
                                         .font(.caption2)
                                         .foregroundColor(.orange.opacity(0.8))
                                 }
@@ -493,6 +493,7 @@ struct UploadView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .padding(8)
         }
+        .dismissKeyboardOnScroll()
         .ghFullScreenBackground(GHTheme.bg)
         .sheet(isPresented: $showPhotosPicker) {
             PHPickerView(selectionHandler: { url in

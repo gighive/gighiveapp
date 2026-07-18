@@ -36,6 +36,7 @@ struct GigHiveApp: App {
     @StateObject private var session = AuthSession()
     @StateObject private var uploadState = UploadStateStore()
     @StateObject private var guestSession = GuestUploadSession()
+
     var body: some Scene {
         WindowGroup {
             Group {

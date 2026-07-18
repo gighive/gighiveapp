@@ -81,6 +81,42 @@ struct GuestUploadView: View {
                     }
 
                 } else if let details = guestSession.eventDetails {
+                    VStack(alignment: .leading, spacing: 16) {
+                    if let token = guestSession.rawToken, let urlString = guestSession.baseURL?.absoluteString {
+                        let viewerRecord = GuestUploadRecord(
+                            statusNonce: token,
+                            uploadJobId: 0,
+                            eventName: "\(details.orgName) — \(details.eventDate)",
+                            submittedAt: Date(),
+                            baseURLString: urlString,
+                            approvalStatus: "viewer",
+                            lastSeenVideoCount: 0,
+                            viewedUploadJobIds: [],
+                            daysRemaining: nil
+                        )
+                        NavigationLink(destination: GuestGalleryView(record: viewerRecord)) {
+                            GHCard(pad: 12) {
+                                HStack(spacing: 8) {
+                                    Image("beelogo")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: (UIFont.preferredFont(forTextStyle: .title2).pointSize + 2) * 2.66)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Visit Event Gallery")
+                                            .font(.title3).bold()
+                                            .ghForeground(GHTheme.text)
+                                        Text("\(details.orgName) — \(details.eventDate)")
+                                            .font(.caption)
+                                            .ghForeground(GHTheme.muted)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .ghForeground(GHTheme.muted)
+                                }
+                            }
+                        }
+                        .disabled(isUploading)
+                    }
                     // Main upload form — event details pre-populated, read-only
                     GHCard(pad: 10) {
                         VStack(alignment: .leading, spacing: 10) {
@@ -185,20 +221,25 @@ struct GuestUploadView: View {
                             }
 
                             if isUploading {
-                                HStack(spacing: 8) {
-                                    if let progress = uploadProgress {
-                                        ProgressView(value: progress)
-                                            .scaleEffect(0.8)
-                                            .progressViewStyle(LinearProgressViewStyle(tint: GHTheme.accent))
-                                            .frame(width: 40)
-                                    } else {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                            .progressViewStyle(CircularProgressViewStyle(tint: GHTheme.accent))
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 8) {
+                                        if let progress = uploadProgress {
+                                            ProgressView(value: progress)
+                                                .scaleEffect(0.8)
+                                                .progressViewStyle(LinearProgressViewStyle(tint: GHTheme.accent))
+                                                .frame(width: 40)
+                                        } else {
+                                            ProgressView()
+                                                .scaleEffect(0.8)
+                                                .progressViewStyle(CircularProgressViewStyle(tint: GHTheme.accent))
+                                        }
+                                        Text(uploadProgress.map { "Uploading… \(Int($0 * 100))%" } ?? "Uploading…")
+                                            .font(.caption)
+                                            .ghForeground(GHTheme.muted)
                                     }
-                                    Text(uploadProgress.map { "Uploading… \(Int($0 * 100))%" } ?? "Uploading…")
-                                        .font(.caption)
-                                        .ghForeground(GHTheme.muted)
+                                    Text("Do not navigate away from this page or your upload will be cancelled.")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
                                 }
                                 .padding(.vertical, 4)
                             }
@@ -225,11 +266,13 @@ struct GuestUploadView: View {
                             }
                         }
                     }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .padding(12)
         }
+        .dismissKeyboardOnScroll()
         .ghFullScreenBackground(GHTheme.bg)
         // .onAppear fires on first appearance; .onChange re-fires when rawToken changes
         // (e.g. user scans a second QR code while GuestUploadView is already on the stack).
@@ -405,6 +448,10 @@ struct GuestUploadView: View {
         case 400:
             alertTitle = "Invalid Request"
             alertMessage = String(data: data, encoding: .utf8) ?? "Bad request"
+            showResultAlert = true
+        case 409:
+            alertTitle = "Already Uploaded"
+            alertMessage = "Video already uploaded to this event (HTTP 409, duplicate checksum). Upload unnecessary."
             showResultAlert = true
         default:
             alertTitle = "HTTP \(status)"

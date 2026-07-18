@@ -16,6 +16,10 @@ struct SplashView: View {
     @State private var showRejectionAlert = false
     @State private var rejectedEventName: String?
 
+    @Environment(\.scenePhase) private var scenePhase
+    private static let splashPollInterval: Double = 60
+    private let splashTimer = Timer.publish(every: Self.splashPollInterval, on: .main, in: .common).autoconnect()
+
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 24) {
@@ -260,9 +264,17 @@ struct SplashView: View {
             .alert(isPresented: $showRejectionAlert) {
                 Alert(
                     title: Text("Video not accepted"),
-                    message: Text("Your video from \(rejectedEventName ?? "the event") was not added to the gallery."),
+                    message: Text("Your video from \(rejectedEventName ?? "the event") was rejected by the moderator and not added to the gallery."),
                     dismissButton: .default(Text("OK"))
                 )
+            }
+            .onReceive(splashTimer) { _ in
+                guard scenePhase == .active else { return }
+                Task { await pollGuestRecords() }
+            }
+            .onChange(of: scenePhase) { phase in
+                guard phase == .active else { return }
+                Task { await pollGuestRecords() }
             }
             
             VStack {

@@ -4,7 +4,14 @@
 <dict>
     <key>com.apple.developer.associated-domains</key>
     <array>
+        <string>applinks:dev.gighive.app</string>
         <string>applinks:dev.gighive.app?mode=developer</string>
+        <string>applinks:unclegreen.gighive.app</string>
+        <string>applinks:unclegreen.gighive.app?mode=developer</string>
+        <string>applinks:lab.gighive.app</string>
+        <string>applinks:lab.gighive.app?mode=developer</string>
+        <string>applinks:staging.gighive.app</string>
+        <string>applinks:staging.gighive.app?mode=developer</string>
         <string>applinks:gighive.internal?mode=developer</string>
         <string>applinks:gighive2.gighive.internal?mode=developer</string>
     </array>

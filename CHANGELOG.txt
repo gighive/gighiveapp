@@ -1,7 +1,41 @@
 ***
+releaseNotes20260717.txt
+Changes: Add qr guest live notifications 
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Configs/GigHive.entitlements
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/Sources/App/GigHiveApp.swift
+	modified:   GigHive/Sources/App/GuestGalleryView.swift
+	modified:   GigHive/Sources/App/GuestUploadView.swift
+	modified:   GigHive/Sources/App/PresentationDetentsCompat.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	new file:   SKILL.md
+
+***
 releaseNotes20260709.txt
 Changes: Add qr guest uploader delete feature
 
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Configs/AppInfo.plist
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/Sources/App/GuestGalleryAPIClient.swift
+	modified:   GigHive/Sources/App/GuestGalleryView.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	deleted:    consoleLog.txt
 
 ***
 releaseNotes20260705.txt

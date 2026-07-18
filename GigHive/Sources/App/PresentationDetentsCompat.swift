@@ -9,3 +9,16 @@ struct PresentationDetentsCompat: ViewModifier {
         }
     }
 }
+
+extension View {
+    func dismissKeyboardOnScroll() -> some View {
+        self.simultaneousGesture(
+            DragGesture().onChanged { _ in
+                UIApplication.shared.sendAction(
+                    #selector(UIResponder.resignFirstResponder),
+                    to: nil, from: nil, for: nil
+                )
+            }
+        )
+    }
+}

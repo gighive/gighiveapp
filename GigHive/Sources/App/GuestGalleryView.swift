@@ -17,11 +17,51 @@ struct GuestGalleryView: View {
     @State private var errorMessage: String?
     @State private var activeAlert: GalleryAlert?
     @State private var viewedIds: Set<Int> = []
+    @State private var ownUploadIds: Set<Int> = []
     @State private var reportedIds: Set<Int> = []
     @State private var deletedIds: Set<Int> = []
 
+    // Phase 1 — live polling
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var previousVideoCount: Int = 0
+    @State private var showNewVideosPill = false
+    @State private var newVideosPillCount = 0
+    @State private var isSilentPolling = false
+    @State private var pillDismissTask: Task<Void, Never>?
+
+    private static let galleryPollInterval: Double = 30
+    private static let pillAutoDismissNanoseconds: UInt64 = 8_000_000_000
+
+    private let galleryTimer = Timer.publish(every: Self.galleryPollInterval, on: .main, in: .common).autoconnect()
+
     private var alertBinding: Binding<Bool> {
         Binding(get: { activeAlert != nil }, set: { if !$0 { activeAlert = nil } })
+    }
+
+    private var pillView: some View {
+        HStack(spacing: 8) {
+            Text("↑ \(newVideosPillCount) new video\(newVideosPillCount == 1 ? "" : "s") added")
+                .bold()
+                .font(.caption)
+                .foregroundColor(.white)
+            Spacer()
+            Button(action: {
+                pillDismissTask?.cancel()
+                pillDismissTask = nil
+                withAnimation { showNewVideosPill = false }
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.orange)
+        .cornerRadius(8)
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 
     var body: some View {
@@ -128,15 +168,14 @@ struct GuestGalleryView: View {
                                     }
                                     Spacer()
                                     if let streamURL = buildStreamURL(video: video) {
-                                        NavigationLink(destination: VideoPlayerView(url: streamURL)) {
+                                        NavigationLink(destination: VideoPlayerView(url: streamURL, onAppear: {
+                                            logWithTimestamp("[Gallery] VideoPlayer appeared — marking viewed uploadJobId=\(video.uploadJobId)")
+                                            markViewed(video.uploadJobId)
+                                        })) {
                                             Image(systemName: "play.circle.fill")
                                                 .font(.title2)
                                                 .ghForeground(GHTheme.accent)
                                         }
-                                        .simultaneousGesture(TapGesture().onEnded {
-                                            logWithTimestamp("[Gallery] Play tapped — url=\(streamURL.absoluteString)")
-                                            markViewed(video.uploadJobId)
-                                        })
                                     }
                                     Button {
                                         activeAlert = .reportConfirm(video)
@@ -145,7 +184,7 @@ struct GuestGalleryView: View {
                                             .font(.title3)
                                             .foregroundColor(.orange)
                                     }
-                                    if video.uploadJobId == record.uploadJobId {
+                                    if ownUploadIds.contains(video.uploadJobId) {
                                         Button {
                                             activeAlert = .deleteConfirm(video)
                                         } label: {
@@ -172,11 +211,36 @@ struct GuestGalleryView: View {
             .padding(.bottom, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .dismissKeyboardOnScroll()
         .ghFullScreenBackground(GHTheme.bg)
+        .overlay(
+            Group {
+                if showNewVideosPill {
+                    VStack {
+                        pillView
+                        Spacer()
+                    }
+                }
+            },
+            alignment: .top
+        )
         .navigationTitle(record.eventName)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            previousVideoCount = record.lastSeenVideoCount
             Task { await loadGallery() }
+        }
+        .onReceive(galleryTimer) { _ in
+            guard scenePhase == .active else { return }
+            Task { await loadGallery(silent: true) }
+        }
+        .onChange(of: scenePhase) { phase in
+            guard phase == .active else { return }
+            Task { await loadGallery(silent: true) }
+        }
+        .onDisappear {
+            pillDismissTask?.cancel()
+            pillDismissTask = nil
         }
         .alert(isPresented: alertBinding) {
             makeAlert()
@@ -185,45 +249,99 @@ struct GuestGalleryView: View {
 
     private func buildStreamURL(video: GuestGalleryVideo) -> URL? {
         guard let base = URL(string: record.baseURLString) else { return nil }
-        let url = URL(string: video.streamUrl, relativeTo: base)?.absoluteURL
-        logWithTimestamp("[Gallery] buildStreamURL: raw=\(video.streamUrl) base=\(record.baseURLString) final=\(url?.absoluteString ?? "nil")")
-        return url
+        return URL(string: video.streamUrl, relativeTo: base)?.absoluteURL
     }
 
     @MainActor
-    private func loadGallery() async {
+    private func loadGallery(silent: Bool = false) async {
         guard let baseURL = URL(string: record.baseURLString) else {
-            errorMessage = "Invalid server URL."
+            if !silent { errorMessage = "Invalid server URL." }
             return
         }
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
+        // Guard: don't overlap a silent poll with any active load (foreground or background).
+        if silent && (isLoading || isSilentPolling) { return }
+        if !silent {
+            isLoading = true
+            errorMessage = nil
+        } else {
+            isSilentPolling = true
+        }
+        defer {
+            if !silent { isLoading = false }
+            else { isSilentPolling = false }
+        }
         do {
             let resp = try await GuestGalleryAPIClient(baseURL: baseURL).fetchGallery(nonce: record.statusNonce)
-            galleryResponse = resp
-            let vc = resp.videoCount ?? resp.videos.count
-            let fresh = GuestUploadRecord.load().first { $0.statusNonce == record.statusNonce } ?? record
-            viewedIds = Set(fresh.viewedUploadJobIds)
-            if vc != fresh.lastSeenVideoCount {
-                var updated = fresh
-                updated.lastSeenVideoCount = vc
-                GuestUploadRecord.upsert(updated)
+
+            // Show pill if a background poll finds new videos.
+            if silent && resp.videos.count > previousVideoCount {
+                let diff = resp.videos.count - previousVideoCount
+                newVideosPillCount = diff
+                pillDismissTask?.cancel()
+                withAnimation { showNewVideosPill = true }
+                pillDismissTask = Task {
+                    try? await Task.sleep(nanoseconds: Self.pillAutoDismissNanoseconds)
+                    guard !Task.isCancelled else { return }
+                    withAnimation { showNewVideosPill = false }
+                }
             }
+
+            withAnimation(.default) { galleryResponse = resp }
+            previousVideoCount = resp.videos.count  // only updated on a successful fetch
+
+            let vc = resp.videoCount ?? resp.videos.count
+            // Load all records for this event and union their viewedUploadJobIds so that
+            // a different nonce being picked by deduplication doesn't reset the badges.
+            var allRecords = GuestUploadRecord.load()
+            let eventRecords = allRecords.filter { $0.baseURLString == record.baseURLString && $0.eventName == record.eventName }
+            viewedIds = Set(eventRecords.flatMap { $0.viewedUploadJobIds })
+            ownUploadIds = Set(eventRecords.map { $0.uploadJobId })
+            // Verbose set logging only on foreground load — silent polls run every 30s and sort is wasteful.
+            if silent {
+                logWithTimestamp("[Gallery] poll silent: videoCount=\(vc)")
+            } else {
+                logWithTimestamp("[Gallery] loadGallery ownUploadIds=\(ownUploadIds.sorted()) viewedIds=\(viewedIds.sorted()) videoCount=\(vc)")
+            }
+            // Update lastSeenVideoCount for every record sharing this event.
+            var needsSave = false
+            for i in allRecords.indices
+                where allRecords[i].baseURLString == record.baseURLString
+                   && allRecords[i].eventName == record.eventName
+                   && allRecords[i].lastSeenVideoCount != vc {
+                allRecords[i].lastSeenVideoCount = vc
+                needsSave = true
+            }
+            if needsSave { GuestUploadRecord.save(allRecords) }
         } catch GuestGalleryError.accessDenied {
-            errorMessage = "Gallery access could not be verified. The nonce may be invalid."
+            if !silent { errorMessage = "Gallery access could not be verified. The nonce may be invalid." }
         } catch {
-            errorMessage = error.localizedDescription
+            if !silent { errorMessage = error.localizedDescription }
         }
     }
 
     private func markViewed(_ uploadJobId: Int) {
         guard !viewedIds.contains(uploadJobId) else { return }
         viewedIds.insert(uploadJobId)
-        let fresh = GuestUploadRecord.load().first { $0.statusNonce == record.statusNonce } ?? record
-        var updated = fresh
-        updated.viewedUploadJobIds = Array(viewedIds)
-        GuestUploadRecord.upsert(updated)
+        // Write the viewed ID to every record sharing this event so that
+        // whichever nonce deduplication picks next session has the full history.
+        updateAllEventRecords { r in
+            guard !r.viewedUploadJobIds.contains(uploadJobId) else { return false }
+            r.viewedUploadJobIds.append(uploadJobId)
+            return true
+        }
+    }
+
+    /// Loads all stored records, applies `modify` to every record sharing this
+    /// view's event (same baseURLString + eventName), and saves if any changed.
+    private func updateAllEventRecords(_ modify: (inout GuestUploadRecord) -> Bool) {
+        var all = GuestUploadRecord.load()
+        var dirty = false
+        for i in all.indices
+            where all[i].baseURLString == record.baseURLString
+               && all[i].eventName == record.eventName {
+            if modify(&all[i]) { dirty = true }
+        }
+        if dirty { GuestUploadRecord.save(all) }
     }
 
     @MainActor
@@ -244,9 +362,17 @@ struct GuestGalleryView: View {
     @MainActor
     private func performDelete(video: GuestGalleryVideo) async {
         guard let baseURL = URL(string: record.baseURLString) else { return }
+        // Each video was uploaded under its own nonce; the delete API validates
+        // that the nonce matches the uploader, so look up the right record.
+        let allRecords = GuestUploadRecord.load()
+        let uploaderNonce = allRecords.first {
+            $0.baseURLString == record.baseURLString &&
+            $0.eventName == record.eventName &&
+            $0.uploadJobId == video.uploadJobId
+        }?.statusNonce ?? record.statusNonce
         do {
             try await GuestGalleryAPIClient(baseURL: baseURL).deleteVideo(
-                nonce: record.statusNonce,
+                nonce: uploaderNonce,
                 uploadJobId: video.uploadJobId
             )
             deletedIds.insert(video.uploadJobId)
@@ -302,15 +428,16 @@ struct GuestGalleryView: View {
 
 struct VideoPlayerView: View {
     let url: URL
+    var onAppear: (() -> Void)? = nil
 
     @State private var player: AVPlayer
     @State private var statusObserver: NSKeyValueObservation?
     @State private var timeControlObserver: NSKeyValueObservation?
     @State private var isBuffering: Bool = true
 
-    init(url: URL) {
+    init(url: URL, onAppear: (() -> Void)? = nil) {
         self.url = url
-        logWithTimestamp("[VideoPlayer] init url=\(url.absoluteString)")
+        self.onAppear = onAppear
         _player = State(wrappedValue: AVPlayer(url: url))
     }
 
@@ -334,6 +461,13 @@ struct VideoPlayerView: View {
         }
         .edgesIgnoringSafeArea(.all)
         .onAppear {
+            onAppear?()
+            do {
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
+                try AVAudioSession.sharedInstance().setActive(true)
+            } catch {
+                logWithTimestamp("[VideoPlayer] AudioSession error: \(error.localizedDescription)")
+            }
             let item = player.currentItem
             logWithTimestamp("[VideoPlayer] onAppear — status=\(item?.status.rawValue ?? -1) error=\(item?.error?.localizedDescription ?? "nil")")
             player.play()
