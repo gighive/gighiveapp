@@ -12,7 +12,6 @@
         <string>applinks:lab.gighive.app?mode=developer</string>
         <string>applinks:staging.gighive.app</string>
         <string>applinks:staging.gighive.app?mode=developer</string>
-        <string>applinks:gighive.internal?mode=developer</string>
         <string>applinks:gighive2.gighive.internal?mode=developer</string>
     </array>
 </dict>

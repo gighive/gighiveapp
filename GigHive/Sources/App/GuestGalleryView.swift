@@ -4,6 +4,8 @@ import AVKit
 private enum GalleryAlert {
     case reportConfirm(GuestGalleryVideo)
     case reportFeedback(String)
+    case retractConfirm(GuestGalleryVideo)
+    case retractFeedback(String)
     case deleteConfirm(GuestGalleryVideo)
     case deleteFeedback(String)
     case error(String)
@@ -145,6 +147,18 @@ struct GuestGalleryView: View {
                         ForEach(resp.videos.filter { !deletedIds.contains($0.uploadJobId) }) { video in
                             GHCard(pad: 10) {
                                 HStack(alignment: .center, spacing: 12) {
+                                    if let streamURL = buildStreamURL(video: video) {
+                                        NavigationLink(destination: VideoPlayerView(url: streamURL, onAppear: {
+                                            logWithTimestamp("[Gallery] VideoPlayer appeared — marking viewed uploadJobId=\(video.uploadJobId)")
+                                            markViewed(video.uploadJobId)
+                                        })) {
+                                            Image(systemName: "play.circle.fill")
+                                                .font(.system(size: 28))
+                                                .foregroundColor(.yellow)
+                                                .frame(width: 40, height: 40)
+                                                .contentShape(Rectangle())
+                                        }
+                                    }
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack(spacing: 6) {
                                             Text(video.displayName ?? "Attendee")
@@ -167,18 +181,12 @@ struct GuestGalleryView: View {
                                         }
                                     }
                                     Spacer()
-                                    if let streamURL = buildStreamURL(video: video) {
-                                        NavigationLink(destination: VideoPlayerView(url: streamURL, onAppear: {
-                                            logWithTimestamp("[Gallery] VideoPlayer appeared — marking viewed uploadJobId=\(video.uploadJobId)")
-                                            markViewed(video.uploadJobId)
-                                        })) {
-                                            Image(systemName: "play.circle.fill")
-                                                .font(.title2)
-                                                .ghForeground(GHTheme.accent)
-                                        }
-                                    }
                                     Button {
-                                        activeAlert = .reportConfirm(video)
+                                        if reportedIds.contains(video.uploadJobId) {
+                                            activeAlert = .retractConfirm(video)
+                                        } else {
+                                            activeAlert = .reportConfirm(video)
+                                        }
                                     } label: {
                                         Image(systemName: reportedIds.contains(video.uploadJobId) ? "flag.fill" : "flag")
                                             .font(.title3)
@@ -287,6 +295,7 @@ struct GuestGalleryView: View {
             }
 
             withAnimation(.default) { galleryResponse = resp }
+            reportedIds = Set(resp.videos.filter { $0.reportedByMe }.map { $0.uploadJobId })
             previousVideoCount = resp.videos.count  // only updated on a successful fetch
 
             let vc = resp.videoCount ?? resp.videos.count
@@ -348,12 +357,29 @@ struct GuestGalleryView: View {
     private func submitReport(video: GuestGalleryVideo) async {
         guard let baseURL = URL(string: record.baseURLString) else { return }
         do {
-            try await GuestGalleryAPIClient(baseURL: baseURL).reportVideo(
+            let serverReported = try await GuestGalleryAPIClient(baseURL: baseURL).setVideoReported(
                 nonce: record.statusNonce,
-                uploadJobId: video.uploadJobId
+                uploadJobId: video.uploadJobId,
+                reported: true
             )
-            reportedIds.insert(video.uploadJobId)
+            if serverReported { reportedIds.insert(video.uploadJobId) } else { reportedIds.remove(video.uploadJobId) }
             activeAlert = .reportFeedback("Thank you. The event organizer will review your report.")
+        } catch {
+            activeAlert = .error(error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func submitRetract(video: GuestGalleryVideo) async {
+        guard let baseURL = URL(string: record.baseURLString) else { return }
+        do {
+            let serverReported = try await GuestGalleryAPIClient(baseURL: baseURL).setVideoReported(
+                nonce: record.statusNonce,
+                uploadJobId: video.uploadJobId,
+                reported: false
+            )
+            if serverReported { reportedIds.insert(video.uploadJobId) } else { reportedIds.remove(video.uploadJobId) }
+            activeAlert = .retractFeedback("Your report has been removed.")
         } catch {
             activeAlert = .error(error.localizedDescription)
         }
@@ -396,6 +422,21 @@ struct GuestGalleryView: View {
         case .reportFeedback(let msg):
             return Alert(
                 title: Text("Report submitted"),
+                message: Text(msg),
+                dismissButton: .default(Text("OK"))
+            )
+        case .retractConfirm(let video):
+            return Alert(
+                title: Text("Remove your report?"),
+                message: Text("This will retract your flag on this video."),
+                primaryButton: .default(Text("Remove")) {
+                    Task { await submitRetract(video: video) }
+                },
+                secondaryButton: .cancel()
+            )
+        case .retractFeedback(let msg):
+            return Alert(
+                title: Text("Report removed"),
                 message: Text(msg),
                 dismissButton: .default(Text("OK"))
             )

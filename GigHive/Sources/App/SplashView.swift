@@ -20,6 +20,10 @@ struct SplashView: View {
     private static let splashPollInterval: Double = 60
     private let splashTimer = Timer.publish(every: Self.splashPollInterval, on: .main, in: .common).autoconnect()
 
+    private var isGuestOnly: Bool {
+        session.credentials == nil && !uploadRecords.isEmpty
+    }
+
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 24) {
@@ -40,61 +44,63 @@ struct SplashView: View {
             }
             .frame(height: 360)
 
-            VStack(alignment: .leading, spacing: 4) {
-                if let creds = session.credentials {
-                    Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(creds.user)")
-                        .font(.footnote)
-                        .foregroundColor(.orange)
-                } else if uploadRecords.contains(where: { $0.approvalStatus == "approved" }) {
-                    Text("Login for full database and upload access")
-                        .font(.footnote)
-                        .foregroundColor(.orange)
-                } else {
-                    Text("Please login first")
-                        .font(.subheadline).bold()
-                        .foregroundColor(.orange)
-                    Text("You will be able to View the Database or Upload a File based on your credentials")
-                        .font(.footnote)
-                        .foregroundColor(.orange)
+            if !isGuestOnly {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let creds = session.credentials {
+                        Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(creds.user)")
+                            .font(.footnote)
+                            .foregroundColor(.orange)
+                    } else if uploadRecords.contains(where: { $0.approvalStatus == "approved" }) {
+                        Text("Login for full database and upload access")
+                            .font(.footnote)
+                            .foregroundColor(.orange)
+                    } else {
+                        Text("Please login first")
+                            .font(.subheadline).bold()
+                            .foregroundColor(.orange)
+                        Text("You will be able to View the Database or Upload a File based on your credentials")
+                            .font(.footnote)
+                            .foregroundColor(.orange)
+                    }
                 }
-            }
 
-            Button("Login") {
-                logWithTimestamp("[Splash] Login tapped")
-                goToLogin = true
-            }
-            .buttonStyle(GHButtonStyle(color: .orange))
-
-            if session.credentials != nil {
-                NavigationLink(destination: DatabaseView()) {
-                    Text("View the Database")
-                }
-                .simultaneousGesture(TapGesture().onEnded {
-                    logWithTimestamp("[Splash] View Database tapped (direct nav)")
-                    session.intendedRoute = .viewDatabase
-                })
-                .buttonStyle(GHButtonStyle(color: .blue))
-            } else {
-                Button("View the Database") {
-                    logWithTimestamp("[Splash] View Database tapped (login redirect)")
-                    session.intendedRoute = .viewDatabase
+                Button("Login") {
+                    logWithTimestamp("[Splash] Login tapped")
                     goToLogin = true
                 }
-                .buttonStyle(GHButtonStyle(color: .blue))
-            }
+                .buttonStyle(GHButtonStyle(color: .orange))
 
-            Button("Upload a File") {
-                logWithTimestamp("[Splash] Upload tapped")
-                session.intendedRoute = .upload
-                if session.credentials == nil { 
-                    goToLogin = true 
+                if session.credentials != nil {
+                    NavigationLink(destination: DatabaseView()) {
+                        Text("View the Database")
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        logWithTimestamp("[Splash] View Database tapped (direct nav)")
+                        session.intendedRoute = .viewDatabase
+                    })
+                    .buttonStyle(GHButtonStyle(color: .blue))
                 } else {
-                    goToUpload = true
-                    // Clear intended route once navigation is triggered to avoid bounce on back
-                    session.intendedRoute = nil
+                    Button("View the Database") {
+                        logWithTimestamp("[Splash] View Database tapped (login redirect)")
+                        session.intendedRoute = .viewDatabase
+                        goToLogin = true
+                    }
+                    .buttonStyle(GHButtonStyle(color: .blue))
                 }
+
+                Button("Upload a File") {
+                    logWithTimestamp("[Splash] Upload tapped")
+                    session.intendedRoute = .upload
+                    if session.credentials == nil { 
+                        goToLogin = true 
+                    } else {
+                        goToUpload = true
+                        // Clear intended route once navigation is triggered to avoid bounce on back
+                        session.intendedRoute = nil
+                    }
+                }
+                .buttonStyle(GHButtonStyle(color: .green))
             }
-            .buttonStyle(GHButtonStyle(color: .green))
 
             if guestSession.recentUploadSuccess {
                 GHCard(pad: 12) {
@@ -102,7 +108,7 @@ struct SplashView: View {
                         Text("Video submitted!")
                             .font(.subheadline).bold()
                             .ghForeground(GHTheme.text)
-                        Text("Your video is in the moderation queue. The event organizer typically reviews submissions within 24–48 hours. Re-open the app after that time to check your status — if approved, a notification will appear on this screen.")
+                        Text("Your video is in the moderation queue. The event organizer typically reviews submissions within 24–48 hours. Re-open the app after that time to check your status — if approved, a notification will appear on this screen. Note that the moderator has the right to reject any content they deem objectionable. If so, you will receive a rejection notification.")
                             .font(.footnote)
                             .ghForeground(GHTheme.muted)
                             .fixedSize(horizontal: false, vertical: true)

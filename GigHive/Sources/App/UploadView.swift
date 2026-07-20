@@ -196,6 +196,10 @@ struct UploadView: View {
                 GHCard(pad: 8) {
                     VStack(alignment: .leading, spacing: 6) {
 
+                        Text("Max upload size: \(AppConstants.MAX_UPLOAD_SIZE_FORMATTED)")
+                            .font(.caption2)
+                            .ghForeground(GHTheme.muted)
+
                         LabeledField("Media file (audio/video) *") {
                             Menu {
                                 Button("From Files", action: { 

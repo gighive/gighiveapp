@@ -15,6 +15,11 @@ struct GuestUploadView: View {
     @State private var alertMessage = ""
     @State private var showPhotosPicker = false
     @State private var showFilesPicker = false
+    @State private var isLoadingMedia = false
+    @State private var photoCopyProgress: Double? = nil
+    @State private var cancelPreparingMedia: (() -> Void)? = nil
+    @State private var videoDisplayName: String? = nil
+    @State private var videoSource = ""
 
     var body: some View {
         ScrollView {
@@ -194,19 +199,26 @@ struct GuestUploadView: View {
                                 .foregroundColor(.orange)
                                 .padding(.vertical, 4)
 
+                            Text("Max upload size: \(AppConstants.MAX_UPLOAD_SIZE_FORMATTED)")
+                                .font(.caption2)
+                                .ghForeground(GHTheme.muted)
+
                             VStack(alignment: .leading, spacing: 6) {
                                 GHLabel(text: "Video file *")
                                 Menu {
                                     Button("From Photos") {
+                                        videoSource = "From Photos"
                                         showPhotosPicker = true
                                     }
                                     Button("From Files") {
+                                        videoSource = "From Files"
+                                        isLoadingMedia = true
                                         showFilesPicker = true
                                     }
                                 } label: {
                                     HStack {
                                         Image(systemName: "paperclip")
-                                        Text(fileURL?.lastPathComponent ?? "Choose Video")
+                                        Text(videoDisplayName ?? "Choose Video")
                                             .lineLimit(1)
                                     }
                                     .padding(.vertical, 8)
@@ -218,6 +230,35 @@ struct GuestUploadView: View {
                                     )
                                     .cornerRadius(10)
                                 }
+                            .disabled(isLoadingMedia)
+                            if isLoadingMedia {
+                                HStack(spacing: 8) {
+                                    if let progress = photoCopyProgress {
+                                        ProgressView(value: progress)
+                                            .progressViewStyle(LinearProgressViewStyle(tint: GHTheme.accent))
+                                    } else {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle(tint: GHTheme.accent))
+                                    }
+                                    Text(photoCopyProgress.map { "Loading… \(Int($0 * 100))%" } ?? "Loading video…")
+                                        .font(.caption)
+                                        .ghForeground(GHTheme.muted)
+                                    Spacer()
+                                    Button("Cancel") {
+                                        cancelPreparingMedia?()
+                                        isLoadingMedia = false
+                                        photoCopyProgress = nil
+                                        cancelPreparingMedia = nil
+                                        videoDisplayName = nil
+                                    }
+                                    .font(.caption)
+                                    .ghForeground(GHTheme.accent)
+                                }
+                                .padding(.vertical, 4)
+                                Text("Do not navigate away from this screen or the file load will be cancelled.")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            }
                             }
 
                             if isUploading {
@@ -248,10 +289,10 @@ struct GuestUploadView: View {
                                 Task { await doUpload() }
                             }
                             .buttonStyle(GHButtonStyle(color: GHTheme.accent))
-                            .disabled(isUploading || fileURL == nil || !guestSession.tosAccepted || guestSession.displayName.trimmingCharacters(in: .whitespaces).isEmpty)
+                            .disabled(isUploading || isLoadingMedia || fileURL == nil || !guestSession.tosAccepted || guestSession.displayName.trimmingCharacters(in: .whitespaces).isEmpty)
                             .padding(.top, 2)
 
-                            if !isUploading {
+                            if !isUploading && !isLoadingMedia {
                                 let missing = missingFields()
                                 if !missing.isEmpty {
                                     VStack(alignment: .leading, spacing: 2) {
@@ -286,10 +327,42 @@ struct GuestUploadView: View {
             Task { await validateToken() }
         }
         .sheet(isPresented: $showPhotosPicker) {
-            PHPickerView(selectionHandler: { url in
-                showPhotosPicker = false
-                fileURL = url
-            })
+            PHPickerView(
+                selectionHandler: { url in
+                    // url is nil on cancel or too-large rejection; non-nil on success.
+                    // Setting fileURL = nil on cancel discards any previously loaded file — intentional, mirrors UploadView.
+                    showPhotosPicker = false
+                    fileURL = url
+                    isLoadingMedia = false
+                    photoCopyProgress = nil
+                    cancelPreparingMedia = nil
+                    videoDisplayName = url.map { u in
+                        let size = formattedFileSize(u)
+                        return size.isEmpty ? videoSource : "\(videoSource) · \(size)"
+                    }
+                },
+                onFileTooLarge: { fileSize, maxSize in
+                    showPhotosPicker = false
+                    isLoadingMedia = false
+                    photoCopyProgress = nil
+                    cancelPreparingMedia = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        alertTitle = "File Too Large"
+                        alertMessage = "The selected file (\(fileSize)) exceeds the maximum allowed upload size of \(maxSize). Please select a smaller file or compress the video before uploading."
+                        showResultAlert = true
+                    }
+                },
+                onCopyStarted: {
+                    isLoadingMedia = true
+                    photoCopyProgress = nil
+                },
+                onCopyProgress: { progress in
+                    photoCopyProgress = progress
+                },
+                onCopyCancelAvailable: { cancel in
+                    cancelPreparingMedia = cancel
+                }
+            )
             .modifier(PresentationDetentsCompat())
         }
         .sheet(isPresented: $showFilesPicker) {
@@ -298,6 +371,20 @@ struct GuestUploadView: View {
                 onPick: { url in
                     showFilesPicker = false
                     fileURL = url
+                    isLoadingMedia = false
+                    videoDisplayName = url.map { u in
+                        let size = formattedFileSize(u)
+                        return size.isEmpty ? videoSource : "\(videoSource) · \(size)"
+                    }
+                },
+                onFileTooLarge: { fileSize, maxSize in
+                    showFilesPicker = false
+                    isLoadingMedia = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        alertTitle = "File Too Large"
+                        alertMessage = "The selected file (\(fileSize)) exceeds the maximum allowed upload size of \(maxSize). Please select a smaller file or compress the video before uploading."
+                        showResultAlert = true
+                    }
                 }
             )
             .modifier(PresentationDetentsCompat())
@@ -318,15 +405,30 @@ struct GuestUploadView: View {
     @MainActor
     private func validateToken() async {
         guard let token = guestSession.rawToken,
-              let base = guestSession.baseURL else { return }
+              let base = guestSession.baseURL else {
+            logWithTimestamp("[GuestUpload] validateToken: BAIL — rawToken=\(guestSession.rawToken == nil ? "nil" : "set") baseURL=\(guestSession.baseURL?.absoluteString ?? "nil")")
+            return
+        }
+        logWithTimestamp("[GuestUpload] validateToken: baseURL=\(base) token=\(token.prefix(8))…")
         tokenError = nil
         isLoadingToken = true
         do {
             guestSession.eventDetails = try await QRTokenAPIClient(baseURL: base).validateToken(token)
+            logWithTimestamp("[GuestUpload] validateToken: SUCCESS eventDetails=\(guestSession.eventDetails != nil)")
         } catch {
+            logWithTimestamp("[GuestUpload] validateToken: ERROR type=\(type(of: error)) code=\((error as NSError).code) domain=\((error as NSError).domain) desc=\(error.localizedDescription)")
+            logWithTimestamp("[GuestUpload] validateToken: full error=\(error)")
             tokenError = error.localizedDescription
         }
         isLoadingToken = false
+    }
+
+    private func formattedFileSize(_ url: URL) -> String {
+        guard let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size]) as? Int64,
+              size > 0 else { return "" }
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: size)
     }
 
     private func missingFields() -> [String] {

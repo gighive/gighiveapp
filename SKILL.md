@@ -36,6 +36,7 @@ Key topology notes:
 
 - Plan first when requested.
 - **ALWAYS ask explicit permission before implementing.** Even when a plan has been discussed, agreed on, and design questions resolved, do NOT begin writing code or making file changes until the user explicitly says to proceed (e.g. "implement it", "do it", "go ahead", "yes"). Confirming a design choice (e.g. answering "from now" to a clarifying question) is NOT permission to implement.
+- **HARD RULE: no implementation before explicit approval.** Do not edit code, create files, apply patches, run mutating commands, or otherwise begin implementation work until the user has clearly and directly authorized implementation. If there is any ambiguity, stop and ask.
 - Do not implement changes until the user explicitly approves when the request is framed as review, planning, confirmation, or discussion.
 - Prefer simple, targeted fixes over broad refactors.
 - Debug from concrete evidence such as errors, logs, screenshots, exact file paths, and observed behavior.
@@ -86,6 +87,62 @@ Key topology notes:
 - Call out assumptions, compatibility constraints, risks, and rollback considerations.
 - Wait for approval before implementing when the user asks for review first.
 
+## Implementation Cadence
+
+When executing a multi-step plan:
+
+- Execute phases in order — Phase 1 before Phase 2, etc.
+- Within each phase, take steps one at a time:
+  1. Ask for approval to start the step.
+  2. Implement the change (for non-manual items).
+  3. Pause for the user to verify (if the step has a verification step).
+  4. Move on to the next step only after verification passes.
+  5. Once a step is verified as completed, update the .md file to indicate as such.
+- Do not batch or skip ahead — each step gets its own approve → implement → verify cycle.
+- Manual steps (e.g., running a DDL command, submitting to the App Store) are handed off to the user with clear instructions; wait for confirmation before proceeding.
+
+## Post-Plan Review Ritual
+
+After any implementation plan document (feature, PR, problem, process, refactor, or other) is
+drafted, always perform the following checks before presenting it as final:
+
+1. **Logic correctness** — Trace every conditional and state transition. Check for edge cases
+   that break stated invariants (e.g., a guard that locks a legitimate user out, a condition
+   that evaluates incorrectly on first render, a race condition between async operations).
+2. **Internal consistency** — Verify that section names, referenced symbols, file paths, and
+   stated behaviors are consistent throughout. Confirm the Testing Checklist covers all code
+   paths described in the implementation. Confirm section order follows the SKILL.md format for
+   the doc type (feature, refactor, problem, PR).
+3. **Coding best practices** — Swift: no force unwraps (RSPEC-6426), no side effects in
+   `@ViewBuilder` bodies, computed properties on `View` structs are cheap. PHP: PDO prepared
+   statements only, correct `http_response_code` + `exit`, proper try/catch error handling.
+4. **Secure coding practices** — No credentials, tokens, or secrets in source code. Sensitive
+   data hashed before DB queries (e.g., `hash('sha256', $nonce)`). Input validated before DB
+   access. Access control verified before data is returned.
+5. **SonarQube violations** — Flag RSPEC-6426 (force unwrap / null dereference), RSPEC-3776
+   (cognitive complexity), RSPEC-2635 (sensitive data in SQL), RSPEC-107 (too many parameters).
+   Document findings in a "SonarQube / Best-Practice Notes" subsection inside the implementation
+   section of the plan doc.
+6. **Brittle coding practices** — Scan for duplicated regexes, duplicated auth-resolution logic,
+   repeated validation branches, magic strings, and copy-pasted query fragments that should be
+   abstracted into one authoritative helper or shared function. Prefer consistent, centralized
+   validation/parsing paths over endpoint-by-endpoint inline logic.
+7. **Ansible best practices** (when applicable) — All variables in `group_vars`, not hardcoded.
+   Idempotent tasks. `become: yes` only where required. Secrets via Vault or env, never
+   plaintext. Smoke tests updated when schema or config changes. Do not use `shell` or `command`
+   modules where a proper Ansible module exists — prefer non-brittle standard modules (e.g.,
+   `mysql_query`, `uri`, `copy`, `template`, `file`) over ad-hoc shell statements.
+8. **Completeness check** — Ask: is there anything missing from this plan? Look for unstated
+   prerequisites, omitted edge cases, steps assumed but not written down, and follow-on work
+   that would block a clean ship if left unaddressed.
+9. **Code snippet depth** — Is there enough detail in the code snippets laid out or do we need
+   a deeper dive?
+10. **Final concerns** — Any last concerns, glaring errors or items missing from the implementation plan?
+11. **MySQL 8.4 compatibility** — Double-check that all SQL is compatible with MySQL 8.4.
+12. **DDL → create_media_db.sql** — For any changes requiring DDL, is there a step to update `create_media_db.sql` to reflect the schema changes?
+13. **Timing issues** — Are there any timing issues with the plan? (e.g., deployment ordering, race conditions, dependent services, DDL before code, backend before client release)
+14. **Code reuse** — Are there any opportunities to reuse code already written for this implementation?
+
 ## Documentation Playbook
 
 - Save plans, findings, and rationale into `/docs/*.md` when requested.
@@ -112,7 +169,7 @@ Key topology notes:
   - `## Overview`
   - `## Primary Use Case and Scope` or `## Use Cases`
   - `## Design Decisions` / architecture / data flow sections as needed
-  - `## Files to Change` — **required** as soon as the feature reaches implementation or planning depth; summary table listing every affected file, its repo, and the nature of the change
+  - `## Files to Change` — **required** as soon as the feature reaches implementation or planning depth; numbered list where each entry names the file, its repo, and a one-line concrete synopsis of every discrete change made to that file — never a vague placeholder like "all steps above" or "see implementation section".
 - Feature docs should explain the user-facing problem, the intended behavior, the chosen architecture, and important constraints or deferred scope.
 - For larger features, prefer explicit phase breakdowns and call out shared patterns or reusable infrastructure.
 
@@ -143,7 +200,7 @@ Key topology notes:
     - `## Constraints / non-goals`
     - `## UX requirements` or `## Agreed Requirements`
     - `## Implementation plan`
-    - `## Files to Change` — **required**; summary table of every affected file, its repo, and the nature of the change
+    - `## Files to Change` — **required**; numbered list where each entry names the file, its repo, and a one-line concrete synopsis of every discrete change made to that file — never a vague placeholder like "all steps above" or "see implementation section".
     - `## Verification`
   - large implementation PR plan:
     - overview and guiding decisions
@@ -165,9 +222,9 @@ Key topology notes:
   - `## Real World Use Cases` — before/after scenario tables with named personas
   - `## Design Principles` — constraints and invariants that must hold after the refactor
   - `## Current State` (or `## Current Auth Model`, etc.) — what the existing code does and why it creates the problem
-  - `## Proposed Implementation` — Changes at a Glance table first, then per-subsystem detail with schema facts, step-by-step changes, and SonarQube / best-practice notes per subsystem
+  - `## Proposed Implementation` — Files Under Change (new/modified) table first, then per-subsystem detail with schema facts, step-by-step changes, and SonarQube / best-practice notes per subsystem
   - `## Wireframe` — ASCII UI sketch when UX is involved
-  - `## Files to Change` — summary table of all affected files and repos
+  - `## Files to Change` — numbered list where each entry names the file, its repo, and a one-line concrete synopsis of every discrete change made to that file — never a vague placeholder like "all steps above" or "see implementation section".
   - Supporting analysis sections (e.g., `## Token TTL vs Gallery Expiry`) — alternatives considered and why they were rejected; mark as historical context if decision is already made
   - `## Progress` — **always last**; subsections: Completed / Remaining — This Feature / Remaining — Follow-on Tasks
 
