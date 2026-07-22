@@ -203,6 +203,10 @@ struct GuestUploadView: View {
                                 .font(.caption2)
                                 .ghForeground(GHTheme.muted)
 
+                            Text("Tip: Videos stored in iCloud must download and export before uploading. For a 12-minute 4K video this may take 5–10 minutes. Verify large video sizes before selecting.")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+
                             VStack(alignment: .leading, spacing: 6) {
                                 GHLabel(text: "Video file *")
                                 Menu {
@@ -361,6 +365,17 @@ struct GuestUploadView: View {
                 },
                 onCopyCancelAvailable: { cancel in
                     cancelPreparingMedia = cancel
+                },
+                onLoadError: { message in
+                    showPhotosPicker = false
+                    isLoadingMedia = false
+                    photoCopyProgress = nil
+                    cancelPreparingMedia = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        alertTitle = "Video Load Failed"
+                        alertMessage = message
+                        showResultAlert = true
+                    }
                 }
             )
             .modifier(PresentationDetentsCompat())

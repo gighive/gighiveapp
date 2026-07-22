@@ -1,5 +1,38 @@
 import SwiftUI
 import AVKit
+import UIKit
+
+private final class ThumbnailLoader: ObservableObject {
+    @Published var image: UIImage?
+    func load(from url: URL) {
+        guard image == nil else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let img = UIImage(data: data) else { return }
+            DispatchQueue.main.async { self.image = img }
+        }.resume()
+    }
+}
+
+private struct AsyncThumbnail: View {
+    let url: URL?
+    @StateObject private var loader = ThumbnailLoader()
+    var body: some View {
+        Group {
+            if let img = loader.image {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: 56, height: 40)
+        .cornerRadius(4)
+        .onAppear {
+            if let url = url { loader.load(from: url) }
+        }
+    }
+}
 
 private enum GalleryAlert {
     case reportConfirm(GuestGalleryVideo)
@@ -152,32 +185,33 @@ struct GuestGalleryView: View {
                                             logWithTimestamp("[Gallery] VideoPlayer appeared — marking viewed uploadJobId=\(video.uploadJobId)")
                                             markViewed(video.uploadJobId)
                                         })) {
-                                            Image(systemName: "play.circle.fill")
-                                                .font(.system(size: 28))
-                                                .foregroundColor(.yellow)
-                                                .frame(width: 40, height: 40)
-                                                .contentShape(Rectangle())
-                                        }
-                                    }
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack(spacing: 6) {
-                                            Text(video.displayName ?? "Attendee")
-                                                .font(.subheadline)
-                                                .ghForeground(GHTheme.text)
-                                            if !viewedIds.contains(video.uploadJobId) {
-                                                Text("New")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.orange)
-                                                    .padding(.horizontal, 5)
-                                                    .padding(.vertical, 2)
-                                                    .background(Color.orange.opacity(0.15))
-                                                    .cornerRadius(4)
+                                            HStack(spacing: 10) {
+                                                Image(systemName: "play.circle.fill")
+                                                    .font(.system(size: 28))
+                                                    .foregroundColor(.yellow)
+                                                    .frame(width: 40, height: 40)
+                                                AsyncThumbnail(url: buildThumbnailURL(video: video))
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    HStack(spacing: 6) {
+                                                        Text(video.displayName ?? "Attendee")
+                                                            .font(.subheadline)
+                                                            .ghForeground(GHTheme.text)
+                                                        if !viewedIds.contains(video.uploadJobId) {
+                                                            Text("New")
+                                                                .font(.caption2)
+                                                                .foregroundColor(.orange)
+                                                                .padding(.horizontal, 5)
+                                                                .padding(.vertical, 2)
+                                                                .background(Color.orange.opacity(0.15))
+                                                                .cornerRadius(4)
+                                                        }
+                                                    }
+                                                    Text(video.label?.isEmpty == false ? video.label! : "Untitled clip")
+                                                        .font(.caption)
+                                                        .ghForeground(GHTheme.muted)
+                                                }
                                             }
-                                        }
-                                        if let label = video.label, !label.isEmpty {
-                                            Text(label)
-                                                .font(.caption)
-                                                .ghForeground(GHTheme.muted)
+                                            .contentShape(Rectangle())
                                         }
                                     }
                                     Spacer()
@@ -258,6 +292,12 @@ struct GuestGalleryView: View {
     private func buildStreamURL(video: GuestGalleryVideo) -> URL? {
         guard let base = URL(string: record.baseURLString) else { return nil }
         return URL(string: video.streamUrl, relativeTo: base)?.absoluteURL
+    }
+
+    private func buildThumbnailURL(video: GuestGalleryVideo) -> URL? {
+        guard let thumbStr = video.thumbnailUrl,
+              let base = URL(string: record.baseURLString) else { return nil }
+        return URL(string: thumbStr, relativeTo: base)?.absoluteURL
     }
 
     @MainActor

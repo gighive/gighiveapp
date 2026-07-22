@@ -43,6 +43,7 @@ struct UploadView: View {
     @State private var showFilesPicker = false
     @State private var allowInsecureTLS = false
     @State private var pendingFileSizeError: FileSizeError? = nil
+    @State private var pendingLoadError: String? = nil
     @State private var myUploadsOnDevice: [UploadedFileTokenEntry] = []
     @State private var pendingDeleteEntry: UploadedFileTokenEntry? = nil
     @State private var showDeleteConfirm: Bool = false
@@ -199,6 +200,10 @@ struct UploadView: View {
                         Text("Max upload size: \(AppConstants.MAX_UPLOAD_SIZE_FORMATTED)")
                             .font(.caption2)
                             .ghForeground(GHTheme.muted)
+
+                        Text("Tip: Videos stored in iCloud must download and export before uploading. For a 12-minute 4K video this may take 5–10 minutes. Verify large video sizes before selecting.")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
 
                         LabeledField("Media file (audio/video) *") {
                             Menu {
@@ -555,6 +560,15 @@ struct UploadView: View {
                 onMain {
                     self.cancelPreparingMedia = cancel
                 }
+            }, onLoadError: { message in
+                logWithTimestamp("⚠️ [PHPicker] onLoadError: \(message)")
+                onMain {
+                    self.showPhotosPicker = false
+                    self.isLoadingMedia = false
+                    self.photoCopyProgress = nil
+                    self.cancelPreparingMedia = nil
+                    self.pendingLoadError = message
+                }
             })
             .modifier(PresentationDetentsCompat())
         }
@@ -676,6 +690,15 @@ struct UploadView: View {
                         debugLog.append("file metadata loaded (\(sizeText))")
                     }
                 }
+            }
+        }
+        .onChange(of: pendingLoadError) { message in
+            guard let message = message else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                self.alertTitle = "Video Load Failed"
+                self.alertMessage = message
+                self.showResultAlert = true
+                self.pendingLoadError = nil
             }
         }
         .onChange(of: pendingFileSizeError) { error in

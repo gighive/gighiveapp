@@ -18,6 +18,7 @@ struct GuestGalleryVideo: Codable, Identifiable {
     let uploadJobId: Int
     let label: String?
     let streamUrl: String
+    let thumbnailUrl: String?
     let displayName: String?
     let approvedAt: String?
     let reportedByMe: Bool
@@ -28,6 +29,7 @@ struct GuestGalleryVideo: Codable, Identifiable {
         case uploadJobId = "upload_job_id"
         case label
         case streamUrl = "stream_url"
+        case thumbnailUrl = "thumbnail_url"
         case displayName = "display_name"
         case approvedAt = "approved_at"
         case reportedByMe = "reported_by_me"
@@ -38,6 +40,7 @@ struct GuestGalleryVideo: Codable, Identifiable {
         uploadJobId = try container.decode(Int.self, forKey: .uploadJobId)
         label = try container.decodeIfPresent(String.self, forKey: .label)
         streamUrl = try container.decode(String.self, forKey: .streamUrl)
+        thumbnailUrl = try container.decodeIfPresent(String.self, forKey: .thumbnailUrl)
         displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
         approvedAt = try container.decodeIfPresent(String.self, forKey: .approvedAt)
         reportedByMe = try container.decodeIfPresent(Bool.self, forKey: .reportedByMe) ?? false

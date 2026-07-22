@@ -32,6 +32,24 @@ Key topology notes:
 - `~/gighive/` on pop-os is the NFS mount of `/Users/sodo/gighiveapp/gighiveinfra/` on Mac.
 - TSV monitor logs land on gighive2 at `~/load_test_runs/`; Python result logs land on pop-os at `~/gighive/load_tests/load_test_runs/` (visible on Mac via NFS).
 
+## MCP Server Environments
+
+MCP config file: `~/.codeium/windsurf/mcp_config.json` on the Mac.
+
+All four servers connect via SSH and run the same MCP server script on the remote host:
+
+| MCP server name | SSH host | Script path |
+|---|---|---|
+| `dev` | `dev` | `/home/ubuntu/gighive/mcp-server/server.py` (venv) |
+| `lab` | `lab` | `/home/ubuntu/gighive/mcp-server/server.py` (venv) |
+| `staging` | `staging` | `/home/ubuntu/gighive/mcp-server/server.py` (venv) |
+| `prod` | `prod` | `/home/ubuntu/gighive/mcp-server/server.py` (venv) |
+
+The `prod` server maps to the `mcp2_*` tool prefix in Windsurf. Other environments get their own tool prefix when active.
+
+- Prefer querying the matching MCP server directly for environment-specific database and operational checks when that server is exposed in the current session.
+- If an expected MCP server is not available as active tools in the current session, tell the user and ask them to verify the SSH host is reachable and the server process is running before falling back to SSH or shell access.
+
 ## Most Important Recurring Patterns
 
 - Plan first when requested.
@@ -266,6 +284,15 @@ docker exec -i mysqlServer bash -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" media
 - **ALL configuration variables — existing and new — must be declared in the appropriate `group_vars` file(s) (`gighive2.yml`, `gighive.yml`, `prod.yml`), never hardcoded in PHP files, Jinja2 templates, or any other file.** The `.env.j2` template injects group_vars into the Docker container environment; any value set there overrides PHP-level fallbacks. If a new variable is added to PHP code with a hardcoded default, it must simultaneously be added to all relevant `group_vars` files.
 - Follow existing Ansible and `group_vars` conventions for configuration.
 - Be explicit about Ubuntu or tooling compatibility when the user raises environment concerns.
+
+## Debugging Protocol
+
+When a problem arises, **DO NOT SPECULATE**. Follow this process:
+
+1. Build a decision tree of what must be true or false at each layer (network, server, app).
+2. Give concrete, copy-pastable commands to test each node.
+3. Wait for actual output before concluding anything.
+4. Only move to the next layer once the current layer is confirmed.
 
 ## Stable Remembered Project Notes
 

@@ -10,6 +10,7 @@ struct PHPickerView: UIViewControllerRepresentable {
     var onCopyStarted: (() -> Void)? = nil  // Called when file copy from Photos begins
     var onCopyProgress: ((Double) -> Void)? = nil  // Progress 0.0 to 1.0
     var onCopyCancelAvailable: (((() -> Void)?) -> Void)? = nil
+    var onLoadError: ((String) -> Void)? = nil  // Called when loadFileRepresentation fails (e.g. disk full)
 
     func makeUIViewController(context: Context) -> PHPickerViewController {
         var config = PHPickerConfiguration()
@@ -31,171 +32,208 @@ struct PHPickerView: UIViewControllerRepresentable {
         private var didCancelLoad = false
         
         init(_ parent: PHPickerView) { self.parent = parent }
-        
+
+        private func loadErrorMessage(_ error: Error?) -> String? {
+            guard let error else { return nil }
+            var current: NSError? = error as NSError
+            while let e = current {
+                if e.domain == "AVFoundationErrorDomain" && e.code == -11807 {
+                    return "Your device storage is full. iOS needs temporary space to prepare the video for upload. Please free up storage and try again."
+                }
+                if e.domain == "PAMediaConversionServiceErrorDomain" {
+                    return "iOS could not export the video. This may be caused by insufficient device storage. Please free up space and try again."
+                }
+                current = e.userInfo[NSUnderlyingErrorKey] as? NSError
+            }
+            return "The video could not be loaded: \(error.localizedDescription)"
+        }
+
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             picker.dismiss(animated: true)
             guard let provider = results.first?.itemProvider else { parent.selectionHandler(nil); return }
             let typeId = UTType.movie.identifier
             if provider.hasItemConformingToTypeIdentifier(typeId) {
                 didCancelLoad = false
-                logWithTimestamp("📊 [PHPicker] Getting file size from metadata...")
-                
-                // Try to get expected file size from metadata
-                var expectedSize: Int64 = 0
-                provider.loadItem(forTypeIdentifier: typeId, options: nil) { item, error in
-                    if let url = item as? URL {
-                        expectedSize = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-                        logWithTimestamp("📊 [PHPicker] Expected file size: \(ByteCountFormatter.string(fromByteCount: expectedSize, countStyle: .file))")
-                    }
-                }
-                
-                // Notify that copy operation is starting
-                DispatchQueue.main.async {
-                    logWithTimestamp("🚀 [PHPicker] Copy operation starting, showing progress indicator")
-                    self.parent.onCopyStarted?()
-                }
-                
-                logWithTimestamp("🚀 [PHPicker] Calling loadFileRepresentation...")
-                var loadProgress: Progress? = nil
-                loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, _ in
+                logWithTimestamp("📊 [PHPicker] Checking Photos library file size before export...")
+                provider.loadItem(forTypeIdentifier: typeId, options: nil) { [weak self] item, error in
                     guard let self = self else { return }
-
-                    if let loadProgress {
-                        logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed (didCancelLoad=\(self.didCancelLoad), isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
-                    } else {
-                        logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed (didCancelLoad=\(self.didCancelLoad), loadProgress=nil)")
-                    }
-                    
-                    // Cleanup progress observation
-                    self.progressObservation?.invalidate()
-                    self.progressObservation = nil
-                    self.progressTimer?.invalidate()
-                    self.progressTimer = nil
-                    logWithTimestamp("🧹 [PHPicker] Cleaned up progress observers")
-
-                    DispatchQueue.main.async {
-                        logWithTimestamp("🧹 [PHPicker] Clearing copy cancel hook")
-                        self.parent.onCopyCancelAvailable?(nil)
-                    }
-
-                    if self.didCancelLoad || (loadProgress?.isCancelled ?? false) {
-                        logWithTimestamp("🛑 [PHPicker] Ignoring load completion because cancel was requested")
-                        DispatchQueue.main.async { self.parent.selectionHandler(nil) }
-                        return
-                    }
-                    
-                    guard let url = url else {
-                        logWithTimestamp("⚠️ [PHPicker] loadFileRepresentation returned nil url")
-                        DispatchQueue.main.async { self.parent.selectionHandler(nil) }
-                        return
-                    }
-                    // Copy to a persistent temp location so the file remains after dismissal
-                    // Force .mp4 for video files (better browser compatibility than .mov)
-                    let originalExt = url.pathExtension.isEmpty ? "mov" : url.pathExtension
-                    let ext = originalExt.lowercased() == "mov" ? "mp4" : originalExt
-                    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(ext)
-                    do {
-                        // Remove if exists
-                        try? FileManager.default.removeItem(at: tmp)
-                        
-                        logWithTimestamp("📋 [PHPicker] Copying to persistent temp location...")
-                        try FileManager.default.copyItem(at: url, to: tmp)
-                        logWithTimestamp("✅ [PHPicker] Copy to temp complete")
-                        
-                        // Set progress to 100%
-                        DispatchQueue.main.async {
-                            logWithTimestamp("💯 [PHPicker] Setting progress to 100%")
-                            self.parent.onCopyProgress?(1.0)
+                    if let url = item as? URL,
+                       let sourceSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                        let size = Int64(sourceSize)
+                        logWithTimestamp("📊 [PHPicker] Photos library file size: \(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))")
+                        if size == 0 {
+                            logWithTimestamp("☁️ [PHPicker] iCloud-only asset detected — proceeding to export")
                         }
-                        // Debug: Log temp path and size (metadata-only, no full file read)
-                        if let size = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
-                            let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
-                            logWithTimestamp("📹 PHPicker: Copied video to \(tmp.lastPathComponent), size: \(sizeStr)")
-                            
-                            // Validate file size against max upload limit
-                            if Int64(size) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
-                                let maxStr = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
-                                logWithTimestamp("⚠️ PHPicker: File too large (\(sizeStr)) - exceeds max allowed size (\(maxStr))")
-                                DispatchQueue.main.async {
-                                    self.parent.onFileTooLarge?(sizeStr, maxStr)
-                                    self.parent.selectionHandler(nil)
-                                }
-                                return
+                        if size > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                            let sizeStr = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+                            let maxStr = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                            logWithTimestamp("⚠️ [PHPicker] File too large before export (\(sizeStr)) - exceeds \(maxStr)")
+                            DispatchQueue.main.async {
+                                self.parent.onFileTooLarge?(sizeStr, maxStr)
+                                self.parent.selectionHandler(nil)
                             }
+                            return
                         }
-                        DispatchQueue.main.async { self.parent.selectionHandler(tmp) }
-                    } catch {
-                        DispatchQueue.main.async { self.parent.selectionHandler(nil) }
+                    } else {
+                        logWithTimestamp("⚠️ [PHPicker] Could not read Photos library file size — proceeding with export")
                     }
+                    self.startExport(provider: provider, typeId: typeId)
                 }
+            } else {
+                DispatchQueue.main.async { self.parent.selectionHandler(nil) }
+            }
+        }
+
+        private func startExport(provider: NSItemProvider, typeId: String) {
+            DispatchQueue.main.async {
+                logWithTimestamp("🚀 [PHPicker] Copy operation starting, showing progress indicator")
+                self.parent.onCopyStarted?()
+            }
+
+            logWithTimestamp("🚀 [PHPicker] Calling loadFileRepresentation...")
+            var loadProgress: Progress? = nil
+            loadProgress = provider.loadFileRepresentation(forTypeIdentifier: typeId) { [weak self] url, loadError in
+                guard let self = self else { return }
+
+                if let loadProgress {
+                    logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed (didCancelLoad=\(self.didCancelLoad), isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                } else {
+                    logWithTimestamp("✅ [PHPicker] loadFileRepresentation completed (didCancelLoad=\(self.didCancelLoad), loadProgress=nil)")
+                }
+
+                // Cleanup progress observation
+                self.progressObservation?.invalidate()
+                self.progressObservation = nil
+                self.progressTimer?.invalidate()
+                self.progressTimer = nil
+                logWithTimestamp("🧹 [PHPicker] Cleaned up progress observers")
 
                 DispatchQueue.main.async {
-                    self.parent.onCopyCancelAvailable?({ [weak self] in
-                        guard let self = self else { return }
-                        self.didCancelLoad = true
-
-                        if let loadProgress {
-                            logWithTimestamp("🛑 [PHPicker] Cancel requested: before cancel (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
-                            loadProgress.cancel()
-                            logWithTimestamp("🛑 [PHPicker] Cancel requested: after cancel (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
-                        } else {
-                            logWithTimestamp("🛑 [PHPicker] Cancel requested but loadProgress is nil")
-                        }
-
-                        self.progressObservation?.invalidate()
-                        self.progressObservation = nil
-                        self.progressTimer?.invalidate()
-                        self.progressTimer = nil
-                        DispatchQueue.main.async {
-                            logWithTimestamp("🛑 [PHPicker] Cancel requested: selectionHandler(nil)")
-                            self.parent.selectionHandler(nil)
-                        }
-                    })
-
-                    if let loadProgress {
-                        logWithTimestamp("🧷 [PHPicker] Installing copy cancel hook (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
-                    } else {
-                        logWithTimestamp("🧷 [PHPicker] Installing copy cancel hook (loadProgress=nil)")
-                    }
+                    logWithTimestamp("🧹 [PHPicker] Clearing copy cancel hook")
+                    self.parent.onCopyCancelAvailable?(nil)
                 }
-                
-                // Observe Progress object for updates
-                logWithTimestamp("👀 [PHPicker] Setting up Progress observation...")
 
-                guard let loadProgress else {
-                    logWithTimestamp("⚠️ [PHPicker] loadFileRepresentation returned nil Progress")
+                if self.didCancelLoad || (loadProgress?.isCancelled ?? false) {
+                    logWithTimestamp("🛑 [PHPicker] Ignoring load completion because cancel was requested")
                     DispatchQueue.main.async { self.parent.selectionHandler(nil) }
                     return
                 }
 
-                logWithTimestamp("📊 [PHPicker] Progress totalUnitCount: \(loadProgress.totalUnitCount) bytes")
-                if loadProgress.totalUnitCount > 0 {
-                    let sizeStr = ByteCountFormatter.string(fromByteCount: loadProgress.totalUnitCount, countStyle: .file)
-                    logWithTimestamp("📊 [PHPicker] File size being copied: \(sizeStr)")
-                }
-                self.progressObservation = loadProgress.observe(\.fractionCompleted, options: [.new]) { progress, change in
-                    let fraction = progress.fractionCompleted
-                    logWithTimestamp("📈 [PHPicker] Progress KVO update: \(Int(fraction * 100))%")
+                guard let url = url else {
+                    logWithTimestamp("⚠️ [PHPicker] loadFileRepresentation returned nil url (error: \(loadError?.localizedDescription ?? "none"))")
+                    let message = self.loadErrorMessage(loadError)
                     DispatchQueue.main.async {
-                        self.parent.onCopyProgress?(fraction)
+                        if let message {
+                            self.parent.onLoadError?(message)
+                        }
+                        self.parent.selectionHandler(nil)
                     }
+                    return
                 }
-                
-                // Fallback: Start polling timer in case Progress object doesn't update
-                DispatchQueue.main.async {
-                    logWithTimestamp("⏱️ [PHPicker] Starting fallback polling timer (0.1s interval)...")
-                    var lastReportedProgress: Double = 0.0
-                    self.progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
-                        let currentProgress = loadProgress.fractionCompleted
-                        if currentProgress != lastReportedProgress {
-                            logWithTimestamp("📈 [PHPicker] Polling detected progress change: \(Int(currentProgress * 100))%")
-                            lastReportedProgress = currentProgress
-                            self.parent.onCopyProgress?(currentProgress)
+                // Copy to a persistent temp location so the file remains after dismissal
+                // Force .mp4 for video files (better browser compatibility than .mov)
+                let originalExt = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+                let ext = originalExt.lowercased() == "mov" ? "mp4" : originalExt
+                let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(ext)
+                do {
+                    // Remove if exists
+                    try? FileManager.default.removeItem(at: tmp)
+
+                    logWithTimestamp("📋 [PHPicker] Copying to persistent temp location...")
+                    try FileManager.default.copyItem(at: url, to: tmp)
+                    logWithTimestamp("✅ [PHPicker] Copy to temp complete")
+
+                    // Set progress to 100%
+                    DispatchQueue.main.async {
+                        logWithTimestamp("💯 [PHPicker] Setting progress to 100%")
+                        self.parent.onCopyProgress?(1.0)
+                    }
+                    // Debug: Log temp path and size (metadata-only, no full file read)
+                    if let size = try? tmp.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                        let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                        logWithTimestamp("📹 PHPicker: Copied video to \(tmp.lastPathComponent), size: \(sizeStr)")
+
+                        // Validate file size against max upload limit
+                        if Int64(size) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                            let maxStr = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                            logWithTimestamp("⚠️ PHPicker: File too large (\(sizeStr)) - exceeds max allowed size (\(maxStr))")
+                            DispatchQueue.main.async {
+                                self.parent.onFileTooLarge?(sizeStr, maxStr)
+                                self.parent.selectionHandler(nil)
+                            }
+                            return
                         }
                     }
+                    DispatchQueue.main.async { self.parent.selectionHandler(tmp) }
+                } catch {
+                    DispatchQueue.main.async { self.parent.selectionHandler(nil) }
                 }
-            } else {
+            }
+
+            DispatchQueue.main.async {
+                self.parent.onCopyCancelAvailable?({ [weak self] in
+                    guard let self = self else { return }
+                    self.didCancelLoad = true
+
+                    if let loadProgress {
+                        logWithTimestamp("🛑 [PHPicker] Cancel requested: before cancel (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                        loadProgress.cancel()
+                        logWithTimestamp("🛑 [PHPicker] Cancel requested: after cancel (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                    } else {
+                        logWithTimestamp("🛑 [PHPicker] Cancel requested but loadProgress is nil")
+                    }
+
+                    self.progressObservation?.invalidate()
+                    self.progressObservation = nil
+                    self.progressTimer?.invalidate()
+                    self.progressTimer = nil
+                    DispatchQueue.main.async {
+                        logWithTimestamp("🛑 [PHPicker] Cancel requested: selectionHandler(nil)")
+                        self.parent.selectionHandler(nil)
+                    }
+                })
+
+                if let loadProgress {
+                    logWithTimestamp("🧷 [PHPicker] Installing copy cancel hook (isCancelled=\(loadProgress.isCancelled), completed=\(loadProgress.completedUnitCount), total=\(loadProgress.totalUnitCount), fraction=\(loadProgress.fractionCompleted))")
+                } else {
+                    logWithTimestamp("🧷 [PHPicker] Installing copy cancel hook (loadProgress=nil)")
+                }
+            }
+
+            // Observe Progress object for updates
+            logWithTimestamp("👀 [PHPicker] Setting up Progress observation...")
+
+            guard let loadProgress else {
+                logWithTimestamp("⚠️ [PHPicker] loadFileRepresentation returned nil Progress")
                 DispatchQueue.main.async { self.parent.selectionHandler(nil) }
+                return
+            }
+
+            logWithTimestamp("📊 [PHPicker] Progress totalUnitCount: \(loadProgress.totalUnitCount) bytes")
+            if loadProgress.totalUnitCount > 0 {
+                let sizeStr = ByteCountFormatter.string(fromByteCount: loadProgress.totalUnitCount, countStyle: .file)
+                logWithTimestamp("📊 [PHPicker] File size being copied: \(sizeStr)")
+            }
+            self.progressObservation = loadProgress.observe(\.fractionCompleted, options: [.new]) { progress, change in
+                let fraction = progress.fractionCompleted
+                logWithTimestamp("📈 [PHPicker] Progress KVO update: \(Int(fraction * 100))%")
+                DispatchQueue.main.async {
+                    self.parent.onCopyProgress?(fraction)
+                }
+            }
+
+            // Fallback: Start polling timer in case Progress object doesn't update
+            DispatchQueue.main.async {
+                logWithTimestamp("⏱️ [PHPicker] Starting fallback polling timer (0.1s interval)...")
+                var lastReportedProgress: Double = 0.0
+                self.progressTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+                    let currentProgress = loadProgress.fractionCompleted
+                    if currentProgress != lastReportedProgress {
+                        logWithTimestamp("📈 [PHPicker] Polling detected progress change: \(Int(currentProgress * 100))%")
+                        lastReportedProgress = currentProgress
+                        self.parent.onCopyProgress?(currentProgress)
+                    }
+                }
             }
         }
     }
@@ -224,6 +262,16 @@ struct DocumentPickerView: UIViewControllerRepresentable {
             guard let url = urls.first else { parent.onPick(nil); return }
             let isAccessed = url.startAccessingSecurityScopedResource()
             defer { if isAccessed { url.stopAccessingSecurityScopedResource() } }
+            // Early size check on source URL before copy — avoids wasting time/disk on oversized files
+            if let sourceSize = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize,
+               Int64(sourceSize) > AppConstants.MAX_UPLOAD_SIZE_BYTES {
+                let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(sourceSize), countStyle: .file)
+                let maxStr = AppConstants.MAX_UPLOAD_SIZE_FORMATTED
+                logWithTimestamp("⚠️ DocumentPicker: File too large before copy (\(sizeStr)) - exceeds \(maxStr)")
+                parent.onFileTooLarge?(sizeStr, maxStr)
+                parent.onPick(nil)
+                return
+            }
             // Copy to temp to ensure we own a stable file URL
             let ext = url.pathExtension
             let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(ext)
