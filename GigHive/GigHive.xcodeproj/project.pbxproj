@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -24,7 +24,6 @@
 		4F1ED7510D79C2347D12EE9F /* MediaResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E2D239BDF9110697BA03F /* MediaResourceLoader.swift */; };
 		57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */; };
 		5B102B67877597ED04281378 /* QRTokenAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D73AF329991A0BFBA872DB /* QRTokenAPIClient.swift */; };
-		AA1234567890ABCDEF012345 /* AuthCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1234567890ABCDEF012345 /* AuthCredential.swift */; };
 		5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */; };
 		5F78A1BBC102A79495BBB0F6 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90634783990CCD76E4E308CE /* AppVersion.swift */; };
 		62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89281475A43AA7EDF94EE3D1 /* UploadView.swift */; };
@@ -36,6 +35,7 @@
 		976BF94829F092409E37B53E /* ShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB29F566070702C9A630820E /* ShareHelper.swift */; };
 		9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782A5D354995ABF69E0D106 /* UploadClient.swift */; };
 		A57C7D6847964A08ECAD1D1F /* GuestGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CB3B8456C212DEB94703CE /* GuestGalleryView.swift */; };
+		AA1234567890ABCDEF012345 /* AuthCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1234567890ABCDEF012345 /* AuthCredential.swift */; };
 		B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */; };
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
 		C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */; };
@@ -58,10 +58,16 @@
 			remoteGlobalIDString = 740AED8370E2E058EBB54EB1;
 			remoteInfo = GigHive;
 		};
+		D8289849303E4AF000FC66EE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B1F9BEB8D7FA8DB70FEC59A3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 740AED8370E2E058EBB54EB1;
+			remoteInfo = GigHive;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		BB1234567890ABCDEF012345 /* AuthCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCredential.swift; sourceTree = "<group>"; };
 		04BF8F1B65BA95BB2142AE1C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		06508823FA767D58BEA3D2B5 /* GuestUploadSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestUploadSession.swift; sourceTree = "<group>"; };
 		0D7BFF9A60ECBDEB20D8D8D8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -93,11 +99,13 @@
 		A489F209BDAB477FEC85E098 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationDetentsCompat.swift; sourceTree = "<group>"; };
 		B37F58C5C78FC637B08F272D /* UploadPayload+GuestUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UploadPayload+GuestUpload.swift"; sourceTree = "<group>"; };
+		BB1234567890ABCDEF012345 /* AuthCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCredential.swift; sourceTree = "<group>"; };
 		BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerView.swift; sourceTree = "<group>"; };
 		CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerBridges.swift; sourceTree = "<group>"; };
 		CB29F566070702C9A630820E /* ShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelper.swift; sourceTree = "<group>"; };
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		D3055290AEEA5443F286065A /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		D8289843303E4AF000FC66EE /* GigHiveUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GigHiveUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		DCB48CD79DA5D49B822B427D /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		E2BD80677E697C313615AB9A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -106,12 +114,23 @@
 		FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D8289844303E4AF000FC66EE /* GigHiveUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = GigHiveUITests; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		7093A4C3810E6EFEB3BD856C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				149FFB5F82036DA27CB0271B /* TUSKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D8289840303E4AF000FC66EE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -123,6 +142,7 @@
 			children = (
 				27B7D8F789D32F70CA4F3E6F /* GigHive.app */,
 				593FA484CF10D70E6F624D69 /* GigHiveShare.appex */,
+				D8289843303E4AF000FC66EE /* GigHiveUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -189,6 +209,7 @@
 				E2BD80677E697C313615AB9A /* Assets.xcassets */,
 				688C093A5F5BE143D3054F19 /* App */,
 				551655A60FCE4B89DE87FF93 /* ShareExtension */,
+				D8289844303E4AF000FC66EE /* GigHiveUITests */,
 				006D390D9432D9646FE3E766 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -234,6 +255,29 @@
 			productReference = 27B7D8F789D32F70CA4F3E6F /* GigHive.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D8289842303E4AF000FC66EE /* GigHiveUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D828984D303E4AF000FC66EE /* Build configuration list for PBXNativeTarget "GigHiveUITests" */;
+			buildPhases = (
+				D828983F303E4AF000FC66EE /* Sources */,
+				D8289840303E4AF000FC66EE /* Frameworks */,
+				D8289841303E4AF000FC66EE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D828984A303E4AF000FC66EE /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D8289844303E4AF000FC66EE /* GigHiveUITests */,
+			);
+			name = GigHiveUITests;
+			packageProductDependencies = (
+			);
+			productName = GigHiveUITests;
+			productReference = D8289843303E4AF000FC66EE /* GigHiveUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -241,6 +285,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					474F2977B888115D9AAE79C9 = {
@@ -248,6 +293,10 @@
 					};
 					740AED8370E2E058EBB54EB1 = {
 						ProvisioningStyle = Automatic;
+					};
+					D8289842303E4AF000FC66EE = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 740AED8370E2E058EBB54EB1;
 					};
 				};
 			};
@@ -269,6 +318,7 @@
 			targets = (
 				740AED8370E2E058EBB54EB1 /* GigHive */,
 				474F2977B888115D9AAE79C9 /* GigHiveShare */,
+				D8289842303E4AF000FC66EE /* GigHiveUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -280,6 +330,13 @@
 			files = (
 				C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */,
 				57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D8289841303E4AF000FC66EE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,6 +387,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D828983F303E4AF000FC66EE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		E492FE8F0FFADA0CBFE9AE35 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -345,6 +409,11 @@
 			isa = PBXTargetDependency;
 			target = 740AED8370E2E058EBB54EB1 /* GigHive */;
 			targetProxy = 4795A854FDCC0BD543FB7CF0 /* PBXContainerItemProxy */;
+		};
+		D828984A303E4AF000FC66EE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 740AED8370E2E058EBB54EB1 /* GigHive */;
+			targetProxy = D8289849303E4AF000FC66EE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -541,6 +610,64 @@
 			};
 			name = Debug;
 		};
+		D828984B303E4AF000FC66EE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHiveUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GigHive;
+			};
+			name = Debug;
+		};
+		D828984C303E4AF000FC66EE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHiveUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GigHive;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		F8CADF19A047AB6B070FDD7D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -583,6 +710,15 @@
 			buildConfigurations = (
 				D0F00CE1E50984C23AB9F609 /* Debug */,
 				119B551B12CEAEA31523AF7B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D828984D303E4AF000FC66EE /* Build configuration list for PBXNativeTarget "GigHiveUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D828984B303E4AF000FC66EE /* Debug */,
+				D828984C303E4AF000FC66EE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

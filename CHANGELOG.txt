@@ -1,4 +1,25 @@
 ***
+releaseNotes20260826.txt
+Changes: Mobile app testing functionality
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   CHANGELOG.txt
+	modified:   GigHive/Configs/AppInfo.plist
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	new file:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHive.xcscheme
+	modified:   GigHive/GigHiveUITests/GigHiveUITests.swift
+	modified:   GigHive/Sources/App/AuthCredential.swift
+	modified:   GigHive/Sources/App/LoginView.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	modified:   GigHive/Sources/App/Theme.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+
+***
 releaseNotes20260824.txt
 Changes: Centralize all Authorization header construction behind a single AuthCredential type, replacing seven independent Base64 encodings scattered across six files. 
 

@@ -2,7 +2,7 @@ import Foundation
 
 /// Encapsulates GigHive authentication material for a single session.
 /// Owns Authorization header production — call sites never construct headers directly.
-enum AuthCredential {
+enum AuthCredential: Equatable {
     /// Legacy HTTP Basic Auth — username + password.
     case basic(user: String, pass: String)
     /// JWT Bearer token issued by GigHive (local login or OIDC exchange).

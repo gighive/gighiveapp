@@ -79,6 +79,7 @@ struct NoAccessoryTextField: UIViewRepresentable {
     var font: UIFont = .systemFont(ofSize: 13)
     var textColor: UIColor = UIColor(red: 0xe9/255, green: 0xee/255, blue: 0xf7/255, alpha: 1.0)
     var tintColor: UIColor = .green
+    var accessibilityIdentifier: String? = nil
     
     func makeUIView(context: Context) -> UITextField {
         let textField = UITextField()
@@ -95,6 +96,9 @@ struct NoAccessoryTextField: UIViewRepresentable {
         textField.tintColor = tintColor
         textField.backgroundColor = .clear
         textField.borderStyle = .none
+        if let id = accessibilityIdentifier {
+            textField.accessibilityIdentifier = id
+        }
         
         // Disable input accessory view to prevent Auto Layout warnings
         textField.inputAssistantItem.leadingBarButtonGroups = []
@@ -153,6 +157,7 @@ struct NoAccessorySecureField: UIViewRepresentable {
     var font: UIFont = .systemFont(ofSize: 13)
     var textColor: UIColor = UIColor(red: 0xe9/255, green: 0xee/255, blue: 0xf7/255, alpha: 1.0)
     var tintColor: UIColor = .green
+    var accessibilityIdentifier: String? = nil
     
     func makeUIView(context: Context) -> UITextField {
         let textField = UITextField()
@@ -170,6 +175,9 @@ struct NoAccessorySecureField: UIViewRepresentable {
         textField.backgroundColor = .clear
         textField.borderStyle = .none
         textField.isSecureTextEntry = true
+        if let id = accessibilityIdentifier {
+            textField.accessibilityIdentifier = id
+        }
         
         // Disable input accessory view to prevent Auto Layout warnings
         textField.inputAssistantItem.leadingBarButtonGroups = []

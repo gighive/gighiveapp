@@ -50,6 +50,7 @@ struct SplashView: View {
                         Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(displayUser)")
                             .font(.footnote)
                             .foregroundColor(.orange)
+                            .accessibilityIdentifier("splash_logged_in_banner")
                     } else if uploadRecords.contains(where: { $0.approvalStatus == "approved" }) {
                         Text("Login for full database and upload access")
                             .font(.footnote)
@@ -69,6 +70,7 @@ struct SplashView: View {
                     goToLogin = true
                 }
                 .buttonStyle(GHButtonStyle(color: .orange))
+                .accessibilityIdentifier("splash_login_button")
 
                 if session.credential != nil {
                     NavigationLink(destination: DatabaseView()) {
@@ -79,6 +81,7 @@ struct SplashView: View {
                         session.intendedRoute = .viewDatabase
                     })
                     .buttonStyle(GHButtonStyle(color: .blue))
+                    .accessibilityIdentifier("splash_view_database_button")
                 } else {
                     Button("View the Database") {
                         logWithTimestamp("[Splash] View Database tapped (login redirect)")
@@ -100,6 +103,7 @@ struct SplashView: View {
                     }
                 }
                 .buttonStyle(GHButtonStyle(color: .green))
+                .accessibilityIdentifier("splash_upload_button")
             }
 
             if guestSession.recentUploadSuccess {
@@ -231,14 +235,20 @@ struct SplashView: View {
                 isActive: $goToBannerGallery) { EmptyView() }
                 .frame(width: 0, height: 0)
                 .hidden()
-            // goToDatabase no longer used with direct NavigationLink above but keep for safety
+            // goToDatabase: used by --uitest-navigate-database to bypass the NavigationLink tap
+            NavigationLink(destination: DatabaseView(), isActive: $goToDatabase) { EmptyView() }
+                .frame(width: 0, height: 0)
+                .hidden()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding()
             .ghFullScreenBackground(GHTheme.bg)
             .onAppear { 
-                // Restore session from Keychain on cold launch if not already logged in
-                if session.credential == nil,
+                // Restore session from Keychain on cold launch if not already logged in.
+                // Skipped under UI tests so each test starts from a clean logged-out state.
+                let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+                if !isUITesting,
+                   session.credential == nil,
                    let lastHost = UserDefaults.standard.string(forKey: "gh_last_host"),
                    !lastHost.isEmpty,
                    let baseURL = URL(string: "https://\(lastHost)") {
@@ -279,6 +289,18 @@ struct SplashView: View {
             }
             .onChange(of: goToLogin) { newVal in logWithTimestamp("[Splash] goToLogin=\(newVal)") }
             .onChange(of: goToDatabase) { newVal in logWithTimestamp("[Splash] goToDatabase=\(newVal)") }
+            .onChange(of: session.credential) { cred in
+                guard cred != nil else { return }
+                let args = ProcessInfo.processInfo.arguments
+                // Delay to let LoginView finish dismissing before triggering navigation
+                if args.contains("--uitest-navigate-upload") {
+                    logWithTimestamp("[Splash] UI-test auto-navigating to Upload after credential set")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { goToUpload = true }
+                } else if args.contains("--uitest-navigate-database") {
+                    logWithTimestamp("[Splash] UI-test auto-navigating to Database after credential set")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { goToDatabase = true }
+                }
+            }
             .alert(isPresented: $showRejectionAlert) {
                 Alert(
                     title: Text("Video not accepted"),

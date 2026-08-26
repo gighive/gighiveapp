@@ -30,7 +30,8 @@ struct LoginView: View {
                                 placeholder: "example.com",
                                 keyboardType: .URL,
                                 autocapitalizationType: .none,
-                                autocorrectionType: .no
+                                autocorrectionType: .no,
+                                accessibilityIdentifier: "login_server_field"
                             )
                         }
                         .padding(.vertical, 6)
@@ -45,7 +46,8 @@ struct LoginView: View {
                             keyboardType: .default,
                             autocapitalizationType: .none,
                             autocorrectionType: .no,
-                            textContentType: .username
+                            textContentType: .username,
+                            accessibilityIdentifier: "login_username_field"
                         )
                         .padding(.vertical, 6)
                         .padding(.horizontal, 8)
@@ -58,7 +60,8 @@ struct LoginView: View {
                             placeholder: "password",
                             keyboardType: .default,
                             autocapitalizationType: .none,
-                            autocorrectionType: .no
+                            autocorrectionType: .no,
+                            accessibilityIdentifier: "login_password_field"
                         )
                         .padding(.vertical, 6)
                         .padding(.horizontal, 8)
@@ -76,6 +79,7 @@ struct LoginView: View {
                         }
                         .ghTint(GHTheme.accent)
                         .padding(.top, 4)
+                        .accessibilityIdentifier("login_insecure_tls_toggle")
                     }
                 }
 
@@ -90,6 +94,7 @@ struct LoginView: View {
                     }
                         .buttonStyle(GHButtonStyle(color: .orange))
                         .disabled(isLoading)
+                        .accessibilityIdentifier("login_sign_in_button")
 
                     Button("Cancel") { 
                         logWithTimestamp("[Login] Cancel tapped")
@@ -103,6 +108,11 @@ struct LoginView: View {
         .ghFullScreenBackground(GHTheme.bg)
         .onAppear {
             logWithTimestamp("[Login] appeared")
+            // Under --uitesting: skip Keychain prefill AND enable insecure TLS for self-signed dev certs
+            if ProcessInfo.processInfo.arguments.contains("--uitesting") {
+                disableCertChecking = true
+                return
+            }
             // Attempt to prefill from Keychain using current server host if present
             let trimmed = base.trimmingCharacters(in: .whitespacesAndNewlines)
             let full = trimmed.hasPrefix("http") ? trimmed : "https://" + trimmed

@@ -212,11 +212,13 @@ struct UploadView: View {
                                     isLoadingMedia = true  // Show loading immediately when dropdown option is touched
                                     showFilesPicker = true 
                                 })
+                                .accessibilityIdentifier("upload_from_files_button")
                                 Button("From Photos", action: { 
                                     loadedFileSize = nil  // Clear previous file size
                                     // Don't set isLoadingMedia here - it will be set when copy starts via onCopyStarted callback
                                     showPhotosPicker = true 
                                 })
+                                .accessibilityIdentifier("upload_from_photos_button")
                             } label: {
                                 HStack {
                                     Image(systemName: "paperclip")
@@ -284,7 +286,8 @@ struct UploadView: View {
                                 placeholder: "",
                                 keyboardType: .default,
                                 autocapitalizationType: .words,
-                                autocorrectionType: .no
+                                autocorrectionType: .no,
+                                accessibilityIdentifier: "upload_org_name_field"
                             )
                             .padding(.vertical, 6)
                             .padding(.horizontal, 8)
@@ -306,7 +309,8 @@ struct UploadView: View {
                                 placeholder: "",
                                 keyboardType: .default,
                                 autocapitalizationType: .none,
-                                autocorrectionType: .no
+                                autocorrectionType: .no,
+                                accessibilityIdentifier: "upload_song_title_field"
                             )
                             .padding(.vertical, 6)
                             .padding(.horizontal, 8)
@@ -324,7 +328,7 @@ struct UploadView: View {
                                 .ghForeground(GHTheme.muted)
                         }
 
-                        Button(isCancelling ? "Cancelling…" : (isUploading ? "Uploading…" : (isLoadingMedia ? "Cancel" : (lastButtonStatus ?? "Upload"))), action: {
+                        Button(isCancelling ? "Cancelling…" : (isUploading ? "Uploading…" : (isLoadingMedia ? "Cancel" : (lastButtonStatus ?? "Upload"))), action: { // upload_submit_button
                             if isUploading {
                                 // Second press: cancel
                                 isCancelling = true
@@ -356,6 +360,7 @@ struct UploadView: View {
                             .buttonStyle(GHButtonStyle(color: lastButtonStatus == "Upload Cancelled" ? .red : GHTheme.accent))
                             .disabled((!isUploading && !isLoadingMedia) && (fileURL == nil || (label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)))
                             .padding(.top, 2)
+                            .accessibilityIdentifier("upload_submit_button")
 
                         // Validation messages for mandatory fields
                         if !isUploading && !isLoadingMedia {
@@ -748,6 +753,22 @@ struct UploadView: View {
             // Sync TLS toggle from shared session (authority for cert-bypass)
             allowInsecureTLS = session.allowInsecureTLS
             reloadMyUploadsOnDevice()
+            // UI-test hook: pre-seed the file picker with a filename found in the app's
+            // Documents directory. Usage: --uitest-upload-file <filename.mp4>
+            // The file must be copied into the app sandbox before the test runs.
+            let args = ProcessInfo.processInfo.arguments
+            if let idx = args.firstIndex(of: "--uitest-upload-file"),
+               args.indices.contains(idx + 1) {
+                let name = args[idx + 1]
+                let docsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+                if let url = docsURL?.appendingPathComponent(name),
+                   FileManager.default.fileExists(atPath: url.path) {
+                    fileURL = url
+                    logWithTimestamp("[UploadView] UI-test pre-seeded fileURL=\(url.lastPathComponent)")
+                } else {
+                    logWithTimestamp("[UploadView] UI-test --uitest-upload-file: file '\(name)' not found in Documents")
+                }
+            }
         }
         .sheet(isPresented: $showDeleteConfirm) {
             ZStack {
