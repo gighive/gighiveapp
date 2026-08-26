@@ -471,7 +471,7 @@ struct GuestUploadView: View {
 
         let client = UploadClient(
             baseURL: baseURL,
-            basicAuth: nil,
+            sessionCredential: nil,
             uploadToken: rawToken,
             useBackgroundSession: false,
             allowInsecure: false

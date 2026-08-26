@@ -21,7 +21,7 @@ enum DatabaseError: Error, LocalizedError {
 
 final class DatabaseAPIClient {
     let baseURL: URL
-    let basicAuth: (user: String, pass: String)?
+    let credential: AuthCredential?
     let allowInsecure: Bool
 
     struct DeleteMediaResponse: Codable {
@@ -36,9 +36,9 @@ final class DatabaseAPIClient {
         }
     }
 
-    init(baseURL: URL, basicAuth: (String, String)?, allowInsecure: Bool = false) {
+    init(baseURL: URL, credential: AuthCredential?, allowInsecure: Bool = false) {
         self.baseURL = baseURL
-        self.basicAuth = basicAuth
+        self.credential = credential
         self.allowInsecure = allowInsecure
     }
 
@@ -59,16 +59,12 @@ final class DatabaseAPIClient {
         guard let url = components?.url else { throw DatabaseError.invalidURL }
 
         var request = URLRequest(url: url)
-        if let auth = basicAuth {
-            let credentials = "\(auth.user):\(auth.pass)"
-            let base64 = Data(credentials.utf8).base64EncodedString()
-            request.setValue("Basic \(base64)", forHTTPHeaderField: "Authorization")
-        }
+        credential?.apply(to: &request)
 
         let session = makeSession()
 
         // Debug logging
-        logWithTimestamp("[DBClient] GET \(url.absoluteString); authUser=\(basicAuth?.user ?? "<none>"); insecureTLS=\(allowInsecure)")
+        logWithTimestamp("[DBClient] GET \(url.absoluteString); authUser=\(credential?.displayUser ?? "<none>"); insecureTLS=\(allowInsecure)")
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw DatabaseError.invalidResponse }
@@ -89,11 +85,7 @@ final class DatabaseAPIClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
 
-        if let auth = basicAuth {
-            let credentials = "\(auth.user):\(auth.pass)"
-            let base64 = Data(credentials.utf8).base64EncodedString()
-            request.setValue("Basic \(base64)", forHTTPHeaderField: "Authorization")
-        }
+        credential?.apply(to: &request)
 
         let body: [String: Any] = [
             "asset_id": fileId,

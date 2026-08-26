@@ -74,7 +74,7 @@ struct MediaPlayerView: View {
 
     let baseURL: URL
     let entry: MediaEntry
-    let credentials: (user: String, pass: String)?
+    let credential: AuthCredential?
     let allowInsecureTLS: Bool
 
     @Environment(\.presentationMode) private var presentationMode
@@ -446,10 +446,7 @@ struct MediaPlayerView: View {
             }
             logWithTimestamp("[Player] Media URL components: scheme=\(mediaURL.scheme ?? "<nil>") host=\(mediaURL.host ?? "<nil>") path=\(mediaURL.path)")
             var headers: [String: String] = [:]
-            if let creds = credentials {
-                let token = Data("\(creds.user):\(creds.pass)".utf8).base64EncodedString()
-                headers["Authorization"] = "Basic \(token)"
-            }
+            credential?.apply(to: &headers)
             logWithTimestamp("[Player] Building AVURLAsset; url=\(mediaURL.absoluteString); auth=\(headers["Authorization"] != nil); insecureTLS=\(allowInsecureTLS)")
 
             // VERBOSE: Preflight HEAD request to inspect HTTP status and headers
@@ -472,7 +469,7 @@ struct MediaPlayerView: View {
                     return
                 }
                 logWithTimestamp("[Player] Proxy custom URL=\(custom.absoluteString) (host=\(host), port=\(port), path=\(path))")
-                let loader = MediaResourceLoader(allowInsecureTLS: allowInsecureTLS, credentials: credentials)
+                let loader = MediaResourceLoader(allowInsecureTLS: allowInsecureTLS, credential: credential)
                 self.loaderRef = loader // retain strongly for the life of this view
                 asset = AVURLAsset(url: custom)
                 asset.resourceLoader.setDelegate(loader, queue: .main)

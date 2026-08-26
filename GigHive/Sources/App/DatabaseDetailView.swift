@@ -43,7 +43,7 @@ struct DatabaseDetailView: View {
             MediaPlayerView(
                 baseURL: baseURL,
                 entry: entry,
-                credentials: session.credentials,
+                credential: session.credential,
                 allowInsecureTLS: session.allowInsecureTLS
             )
         }

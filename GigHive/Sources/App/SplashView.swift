@@ -21,7 +21,7 @@ struct SplashView: View {
     private let splashTimer = Timer.publish(every: Self.splashPollInterval, on: .main, in: .common).autoconnect()
 
     private var isGuestOnly: Bool {
-        session.credentials == nil && !uploadRecords.isEmpty
+        session.credential == nil && !uploadRecords.isEmpty
     }
 
     var body: some View {
@@ -46,8 +46,8 @@ struct SplashView: View {
 
             if !isGuestOnly {
                 VStack(alignment: .leading, spacing: 4) {
-                    if let creds = session.credentials {
-                        Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(creds.user)")
+                    if let displayUser = session.credential?.displayUser {
+                        Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(displayUser)")
                             .font(.footnote)
                             .foregroundColor(.orange)
                     } else if uploadRecords.contains(where: { $0.approvalStatus == "approved" }) {
@@ -70,7 +70,7 @@ struct SplashView: View {
                 }
                 .buttonStyle(GHButtonStyle(color: .orange))
 
-                if session.credentials != nil {
+                if session.credential != nil {
                     NavigationLink(destination: DatabaseView()) {
                         Text("View the Database")
                     }
@@ -91,7 +91,7 @@ struct SplashView: View {
                 Button("Upload a File") {
                     logWithTimestamp("[Splash] Upload tapped")
                     session.intendedRoute = .upload
-                    if session.credentials == nil { 
+                    if session.credential == nil { 
                         goToLogin = true 
                     } else {
                         goToUpload = true
@@ -237,11 +237,23 @@ struct SplashView: View {
             .padding()
             .ghFullScreenBackground(GHTheme.bg)
             .onAppear { 
-                logWithTimestamp("[Splash] appeared; loggedIn=\(session.credentials != nil)")
+                // Restore session from Keychain on cold launch if not already logged in
+                if session.credential == nil,
+                   let lastHost = UserDefaults.standard.string(forKey: "gh_last_host"),
+                   !lastHost.isEmpty,
+                   let baseURL = URL(string: "https://\(lastHost)") {
+                    let restored = try? KeychainStore.loadCredential(host: lastHost)
+                    if let credential = restored {
+                        session.baseURL = baseURL
+                        session.credential = credential
+                        logWithTimestamp("[Splash] Restored session from Keychain for host=\(lastHost)")
+                    }
+                }
+                logWithTimestamp("[Splash] appeared; loggedIn=\(session.credential != nil)")
                 if guestSession.rawToken != nil {
                     logWithTimestamp("[Splash] Guest token present, navigating to GuestUploadView")
                     goToGuestUpload = true
-                } else if session.credentials != nil, session.intendedRoute == .upload {
+                } else if session.credential != nil, session.intendedRoute == .upload {
                     logWithTimestamp("[Splash] Auto-navigating to Upload after login")
                     goToUpload = true
                     // Clear intended route so that Back from Upload returns to Splash cleanly

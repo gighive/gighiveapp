@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 /// Uses direct streaming: builds multipart body on-the-fly and streams directly to network
 final class NetworkProgressUploadClient: NSObject {
     private let baseURL: URL
-    private let basicAuth: (user: String, pass: String)?
+    private let credential: AuthCredential?
     private let allowInsecure: Bool
     private var session: URLSession!
     
@@ -16,9 +16,9 @@ final class NetworkProgressUploadClient: NSObject {
     private var responseData = Data()  // Accumulate response data
     private var currentInputStream: MultipartInputStream?  // Store stream for delegate
     
-    init(baseURL: URL, basicAuth: (String, String)?, allowInsecure: Bool) {
+    init(baseURL: URL, credential: AuthCredential?, allowInsecure: Bool) {
         self.baseURL = baseURL
-        self.basicAuth = basicAuth
+        self.credential = credential
         self.allowInsecure = allowInsecure
         
         super.init()
@@ -68,12 +68,8 @@ final class NetworkProgressUploadClient: NSObject {
                     var request = URLRequest(url: finalURL)
                     request.httpMethod = "POST"
                     
-                    // Add basic auth
-                    if let auth = basicAuth {
-                        let credentials = "\(auth.user):\(auth.pass)"
-                        let encodedCredentials = Data(credentials.utf8).base64EncodedString()
-                        request.setValue("Basic \(encodedCredentials)", forHTTPHeaderField: "Authorization")
-                    }
+                    // Apply auth header
+                    credential?.apply(to: &request)
                     
                     request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
                     

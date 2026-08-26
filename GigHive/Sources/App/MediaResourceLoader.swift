@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSessionDataDelegate {
     private static let errorDomain = "GigHiveMediaResourceLoader"
     private let allowInsecureTLS: Bool
-    private let credentials: (user: String, pass: String)?
+    private let credential: AuthCredential?
     private(set) var lastFailureMessage: String?
     private(set) var lastFailureResponseHeaders: [AnyHashable: Any] = [:]
     private final class RequestState {
@@ -23,9 +23,9 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
     private var tasks: [URLSessionTask: RequestState] = [:]
     private let queue = DispatchQueue(label: "com.gighive.media.loader")
 
-    init(allowInsecureTLS: Bool, credentials: (user: String, pass: String)?) {
+    init(allowInsecureTLS: Bool, credential: AuthCredential?) {
         self.allowInsecureTLS = allowInsecureTLS
-        self.credentials = credentials
+        self.credential = credential
     }
 
     // Map custom scheme gighive back to https
@@ -69,10 +69,7 @@ final class MediaResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URLSes
             }
         }
 
-        if let creds = credentials {
-            let token = Data("\(creds.user):\(creds.pass)".utf8).base64EncodedString()
-            req.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
-        }
+        credential?.apply(to: &req)
 
         let cfg = URLSessionConfiguration.ephemeral
         let opQueue = OperationQueue()

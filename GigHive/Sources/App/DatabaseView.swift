@@ -88,9 +88,9 @@ struct DatabaseView: View {
             logWithTimestamp("[DB] Load aborted: missing baseURL")
             return
         }
-        logWithTimestamp("[DB] Loading from base=\(baseURL.absoluteString), insecureTLS=\(session.allowInsecureTLS), user=\(session.credentials?.user ?? "<none>")")
+        logWithTimestamp("[DB] Loading from base=\(baseURL.absoluteString), insecureTLS=\(session.allowInsecureTLS), user=\(session.credential?.displayUser ?? "<none>")")
         do {
-            let client = DatabaseAPIClient(baseURL: baseURL, basicAuth: session.credentials, allowInsecure: session.allowInsecureTLS)
+            let client = DatabaseAPIClient(baseURL: baseURL, credential: session.credential, allowInsecure: session.allowInsecureTLS)
             let list = try await client.fetchMediaList()
             entries = list
             filteredEntries = list

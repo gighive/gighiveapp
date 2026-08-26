@@ -24,6 +24,7 @@
 		4F1ED7510D79C2347D12EE9F /* MediaResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1E2D239BDF9110697BA03F /* MediaResourceLoader.swift */; };
 		57EC852635D164AD291093F7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */; };
 		5B102B67877597ED04281378 /* QRTokenAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D73AF329991A0BFBA872DB /* QRTokenAPIClient.swift */; };
+		AA1234567890ABCDEF012345 /* AuthCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1234567890ABCDEF012345 /* AuthCredential.swift */; };
 		5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */; };
 		5F78A1BBC102A79495BBB0F6 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90634783990CCD76E4E308CE /* AppVersion.swift */; };
 		62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89281475A43AA7EDF94EE3D1 /* UploadView.swift */; };
@@ -60,6 +61,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		BB1234567890ABCDEF012345 /* AuthCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCredential.swift; sourceTree = "<group>"; };
 		04BF8F1B65BA95BB2142AE1C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		06508823FA767D58BEA3D2B5 /* GuestUploadSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestUploadSession.swift; sourceTree = "<group>"; };
 		0D7BFF9A60ECBDEB20D8D8D8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 			children = (
 				D3055290AEEA5443F286065A /* AppConstants.swift */,
 				90634783990CCD76E4E308CE /* AppVersion.swift */,
+				BB1234567890ABCDEF012345 /* AuthCredential.swift */,
 				DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */,
 				3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */,
 				E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */,
@@ -289,6 +292,7 @@
 			files = (
 				2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */,
 				5F78A1BBC102A79495BBB0F6 /* AppVersion.swift in Sources */,
+				AA1234567890ABCDEF012345 /* AuthCredential.swift in Sources */,
 				5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */,
 				00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */,
 				C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */,
@@ -382,7 +386,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.11;
+				MARKETING_VERSION = 1.0.12;
 				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;
@@ -553,7 +557,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.11;
+				MARKETING_VERSION = 1.0.12;
 				PRODUCT_BUNDLE_IDENTIFIER = app.gighive.GigHive;
 				PRODUCT_NAME = GigHive;
 				SDKROOT = iphoneos;

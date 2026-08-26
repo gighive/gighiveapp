@@ -139,7 +139,7 @@ struct LoginView: View {
         do {
             let client = DatabaseAPIClient(
                 baseURL: url,
-                basicAuth: (username, password),
+                credential: .basic(user: username, pass: password),
                 allowInsecure: disableCertChecking
             )
             let entries = try await client.fetchMediaList()
@@ -161,11 +161,11 @@ struct LoginView: View {
 
         // On success, persist into session and dismiss
         session.baseURL = url
-        session.credentials = (username, password)
+        session.credential = .basic(user: username, pass: password)
         session.allowInsecureTLS = disableCertChecking
-        // Derive role from username for now (server doesn't return role yet)
-        let lowered = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        session.role = (lowered == "admin") ? .admin : .viewer
+        // Role is not derivable from username/password — default to .viewer.
+        // Phase 3 overwrites session.role from the JWT role claim.
+        session.role = .viewer
         if let host = url.host, !host.isEmpty {
             do {
                 if rememberOnDevice {

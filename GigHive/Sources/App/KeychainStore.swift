@@ -42,6 +42,13 @@ enum KeychainStore {
         return (user, pass)
     }
 
+    /// Convenience — loads saved credentials and wraps them as an AuthCredential.
+    /// Returns nil if no credentials are stored for this host.
+    static func loadCredential(host: String) throws -> AuthCredential? {
+        guard let pair = try load(host: host) else { return nil }
+        return .basic(user: pair.user, pass: pair.pass)
+    }
+
     static func delete(host: String) throws {
         let status = SecItemDelete(keyAttrs(host: host) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {

@@ -188,8 +188,8 @@ struct UploadView: View {
                         .ghForeground(GHTheme.text)
                 }
                 // Logged-in banner
-                if let creds = session.credentials {
-                    Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(creds.user)")
+                if let displayUser = session.credential?.displayUser {
+                    Text("User is logged into \(session.baseURL?.absoluteString ?? "<unknown>") as \(displayUser)")
                         .font(.footnote)
                         .foregroundColor(.orange)
                 }
@@ -961,7 +961,7 @@ struct UploadView: View {
             showResultAlert = true
             return 
         }
-        guard let creds = session.credentials else {
+        guard session.credential != nil else {
             debugLog.append("missing credentials in session")
             alertTitle = "Missing Credentials"
             alertMessage = "Please login again to provide upload credentials."
@@ -977,7 +977,7 @@ struct UploadView: View {
             participants: nil, keywords: nil, location: nil, rating: nil, notes: nil
         )
         // Build client using the provided server credentials
-        let client = UploadClient(baseURL: base, basicAuth: (creds.user, creds.pass), useBackgroundSession: false, allowInsecure: session.allowInsecureTLS)
+        let client = UploadClient(baseURL: base, sessionCredential: session.credential, useBackgroundSession: false, allowInsecure: session.allowInsecureTLS)
         currentUploadClient = client  // Store reference for cancellation
         isUploading = true
         isCancelling = false
@@ -1271,7 +1271,7 @@ struct UploadView: View {
             showDeleteErrorAlert = true
             return
         }
-        guard let creds = session.credentials else {
+        guard session.credential != nil else {
             logWithTimestamp("[UploadView] deleteEntry abort: missing credentials")
             deleteErrorMessage = "Missing credentials"
             showDeleteErrorAlert = true
@@ -1284,10 +1284,10 @@ struct UploadView: View {
             return
         }
 
-        logWithTimestamp("[UploadView] deleteEntry calling API host=\(host) user=\(creds.user)")
+        logWithTimestamp("[UploadView] deleteEntry calling API host=\(host) user=\(session.credential?.displayUser ?? "<unknown>")")
 
         do {
-            let client = DatabaseAPIClient(baseURL: baseURL, basicAuth: creds, allowInsecure: session.allowInsecureTLS)
+            let client = DatabaseAPIClient(baseURL: baseURL, credential: session.credential, allowInsecure: session.allowInsecureTLS)
             let resp = try await client.deleteMediaFile(fileId: entry.fileId, deleteToken: entry.deleteToken)
             logWithTimestamp("[UploadView] deleteEntry API response success=\(resp.success) deleted=\(resp.deletedCount) errors=\(resp.errorCount)")
             if resp.deletedCount == 1 {

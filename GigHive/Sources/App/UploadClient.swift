@@ -73,15 +73,15 @@ final class InsecureTrustDelegate: NSObject, URLSessionDelegate, URLSessionTaskD
 final class UploadClient {
     let baseURL: URL
     let session: URLSession
-    let basicAuth: (user: String, pass: String)?
+    let sessionCredential: AuthCredential?
     let allowInsecure: Bool
     let uploadToken: String?
     private var currentNetworkClient: NetworkProgressUploadClient?
     private var currentTusClient: TUSUploadClient?
 
-    init(baseURL: URL, basicAuth: (String,String)? = nil, uploadToken: String? = nil, useBackgroundSession: Bool = false, allowInsecure: Bool = false) {
+    init(baseURL: URL, sessionCredential: AuthCredential? = nil, uploadToken: String? = nil, useBackgroundSession: Bool = false, allowInsecure: Bool = false) {
         self.baseURL = baseURL
-        self.basicAuth = basicAuth
+        self.sessionCredential = sessionCredential
         self.uploadToken = uploadToken
         self.allowInsecure = allowInsecure
         if useBackgroundSession {
@@ -127,10 +127,11 @@ final class UploadClient {
         let tusBaseURL = baseURL.appendingPathComponent("files/")
         logWithTimestamp("🚀 [UploadClient] Starting TUS upload")
         logWithTimestamp("🌐 [UploadClient] tusBaseURL=\(tusBaseURL.absoluteString)")
+        // Upload token wins over session credentials; they are orthogonal authorities.
+        let effectiveCredential: AuthCredential? = uploadToken.map { .uploadToken($0) } ?? sessionCredential
         let tusClient = try TUSUploadClient(
             tusBaseURL: tusBaseURL,
-            basicAuth: uploadToken == nil ? basicAuth.map { (user: $0.user, pass: $0.pass) } : nil,
-            uploadToken: uploadToken,
+            credential: effectiveCredential,
             allowInsecure: allowInsecure
         )
         self.currentTusClient = tusClient
@@ -200,15 +201,8 @@ final class UploadClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
 
-        if let token = uploadToken {
-            request.setValue(token, forHTTPHeaderField: "X-Upload-Token")
-        }
-
-        if uploadToken == nil, let auth = basicAuth {
-            let credentials = "\(auth.user):\(auth.pass)"
-            let encoded = Data(credentials.utf8).base64EncodedString()
-            request.setValue("Basic \(encoded)", forHTTPHeaderField: "Authorization")
-        }
+        let effectiveCredential: AuthCredential? = uploadToken.map { .uploadToken($0) } ?? sessionCredential
+        effectiveCredential?.apply(to: &request)
 
         return try await withCheckedThrowingContinuation { continuation in
             let task = session.uploadTask(with: request, from: json) { data, response, error in

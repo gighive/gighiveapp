@@ -1,4 +1,36 @@
 ***
+releaseNotes20260824.txt
+Changes: Centralize all Authorization header construction behind a single AuthCredential type, replacing seven independent Base64 encodings scattered across six files. 
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	deleted:    APPLE_GUIDELINES_ANALYSIS.md
+	deleted:    APP_TERMS_OF_SERVICE.md
+	modified:   CHANGELOG.txt
+	deleted:    FOUR_PAGE_REARCHITECTURE.md
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	new file:   GigHive/Sources/App/AuthCredential.swift
+	modified:   GigHive/Sources/App/AuthSession.swift
+	modified:   GigHive/Sources/App/DatabaseAPIClient.swift
+	modified:   GigHive/Sources/App/DatabaseDetailView.swift
+	modified:   GigHive/Sources/App/DatabaseView.swift
+	modified:   GigHive/Sources/App/GuestUploadView.swift
+	modified:   GigHive/Sources/App/KeychainStore.swift
+	modified:   GigHive/Sources/App/LoginView.swift
+	modified:   GigHive/Sources/App/MediaPlayerView.swift
+	modified:   GigHive/Sources/App/MediaResourceLoader.swift
+	modified:   GigHive/Sources/App/NetworkProgressUploadClient.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	modified:   GigHive/Sources/App/TUSUploadClient.swift
+	modified:   GigHive/Sources/App/UploadClient.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	modified:   SKILL.md
+
+***
 releaseNotes20260722.txt
 Changes: v1.0.11 + Guest thumbnail view and Untitled clip change 
 
