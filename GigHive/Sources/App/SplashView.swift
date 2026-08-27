@@ -259,6 +259,26 @@ struct SplashView: View {
                         logWithTimestamp("[Splash] Restored session from Keychain for host=\(lastHost)")
                     }
                 }
+                // UI-test auto-login: inject credentials from environment variables without
+                // showing LoginView or touching the keyboard.  This prevents iOS keyboard
+                // infrastructure windows from blocking subsequent UI interactions.
+                // Requires --uitest-auto-login + GH_TEST_HOST / GH_TEST_USER / GH_TEST_PASS.
+                if isUITesting &&
+                   ProcessInfo.processInfo.arguments.contains("--uitest-auto-login") &&
+                   session.credential == nil {
+                    let env = ProcessInfo.processInfo.environment
+                    if let host = env["GH_TEST_HOST"], !host.isEmpty,
+                       let user = env["GH_TEST_USER"], !user.isEmpty,
+                       let pass = env["GH_TEST_PASS"], !pass.isEmpty,
+                       let baseURL = URL(string: "https://\(host)") {
+                        // LoginView always enables insecure TLS under --uitesting so
+                        // dev/self-signed certs are accepted.  Mirror that behaviour here.
+                        session.allowInsecureTLS = true
+                        session.baseURL = baseURL
+                        session.credential = .basic(user: user, pass: pass)
+                        logWithTimestamp("[Splash] UI-test auto-login: user=\(user) host=\(host) insecureTLS=true")
+                    }
+                }
                 logWithTimestamp("[Splash] appeared; loggedIn=\(session.credential != nil)")
                 if guestSession.rawToken != nil {
                     logWithTimestamp("[Splash] Guest token present, navigating to GuestUploadView")
@@ -298,6 +318,9 @@ struct SplashView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { goToUpload = true }
                 } else if args.contains("--uitest-navigate-database") {
                     logWithTimestamp("[Splash] UI-test auto-navigating to Database after credential set")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { goToDatabase = true }
+                } else if args.contains("--uitest-navigate-unified-list") {
+                    logWithTimestamp("[Splash] UI-test auto-navigating to UnifiedVideoListView after credential set")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { goToDatabase = true }
                 }
             }

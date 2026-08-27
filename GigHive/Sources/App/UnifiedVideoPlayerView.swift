@@ -3,37 +3,136 @@ import AVKit
 import AVFoundation
 import UIKit
 
-// AudioPlaybackState, PlayerViewController, and PlaybackOverlayState moved to
-// UnifiedVideoPlayerView.swift (Step 3). They are internal module-level types
-// and are visible here without import.
+// MARK: - UnifiedVideoPlayerConfig
 
-struct MediaPlayerView: View {
-    // PlaybackOverlayState is now the module-level enum in UnifiedVideoPlayerView.swift.
-
-    let baseURL: URL
-    let entry: MediaEntry
-    let credential: AuthCredential?
+/// Bundles all per-invocation parameters so call sites stay below RSPEC-107.
+/// credential == nil → public/guest stream (direct AVURLAsset, no proxy).
+/// credential != nil → auth proxy path (MediaResourceLoader, gighive:// scheme).
+struct UnifiedVideoPlayerConfig {
+    let url: URL
+    let credential: AuthCredential?     // nil = guest / public stream
     let allowInsecureTLS: Bool
+    let fileType: MediaFileType
+}
+
+// MARK: - AudioPlaybackState
+//
+// Moved here from MediaPlayerView.swift (Step 3). MediaPlayerView.swift still
+// references this type — same module, no import required.
+
+final class AudioPlaybackState: ObservableObject {
+    @Published var isPlaying: Bool = false
+    @Published var currentTimeSeconds: Double = 0
+    @Published var durationSeconds: Double = 0
+    @Published var scrubPositionSeconds: Double = 0
+    @Published var isScrubbing: Bool = false
+
+    @MainActor
+    func reset() {
+        isPlaying = false
+        currentTimeSeconds = 0
+        durationSeconds = 0
+        scrubPositionSeconds = 0
+        isScrubbing = false
+    }
+}
+
+// MARK: - PlayerViewController
+//
+// Moved here from MediaPlayerView.swift (Step 3).
+
+struct PlayerViewController: UIViewControllerRepresentable {
+    let player: AVPlayer
+
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        logWithTimestamp("[PlayerVC] makeUIViewController called")
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.allowsPictureInPicturePlayback = true
+        controller.showsPlaybackControls = true
+        controller.delegate = context.coordinator
+        logWithTimestamp("[PlayerVC] Created controller with player=\(player)")
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        let currentTime = uiViewController.player?.currentTime().seconds ?? -1
+        let rate = uiViewController.player?.rate ?? -1
+        logWithTimestamp("[PlayerVC] updateUIViewController called - currentTime=\(currentTime) rate=\(rate)")
+        if uiViewController.player !== player {
+            logWithTimestamp("[PlayerVC] ⚠️ Player instance changed, updating (this should NOT happen)")
+            uiViewController.player = player
+        } else {
+            logWithTimestamp("[PlayerVC] ✅ Player instance is the same, no update needed")
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        func playerViewController(_ playerViewController: AVPlayerViewController, willBeginFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            let currentTime = playerViewController.player?.currentTime().seconds ?? -1
+            let rate = playerViewController.player?.rate ?? -1
+            logWithTimestamp("[PlayerVC] 🔲 Will BEGIN fullscreen presentation - time=\(currentTime) rate=\(rate)")
+        }
+
+        func playerViewController(_ playerViewController: AVPlayerViewController, willEndFullScreenPresentationWithAnimationCoordinator coordinator: UIViewControllerTransitionCoordinator) {
+            let currentTime = playerViewController.player?.currentTime().seconds ?? -1
+            let rate = playerViewController.player?.rate ?? -1
+            logWithTimestamp("[PlayerVC] 🔲 Will END fullscreen presentation - time=\(currentTime) rate=\(rate)")
+        }
+    }
+}
+
+// MARK: - PlaybackOverlayState
+//
+// Moved here from MediaPlayerView.swift (was private inside MediaPlayerView).
+// Now internal so UnifiedVideoPlayerView can declare it at file scope.
+
+enum PlaybackOverlayState: Equatable {
+    case loading(String)
+    case failed(title: String, detail: String)
+    case none
+}
+
+// MARK: - UnifiedVideoPlayerView
+
+struct UnifiedVideoPlayerView: View {
+    let config: UnifiedVideoPlayerConfig
+    /// Called in player's onAppear — used by the list view to mark the video as viewed.
+    var onAppear: (() -> Void)? = nil
 
     @Environment(\.presentationMode) private var presentationMode
+
+    // MARK: State — player and resource loader
     @State private var player: AVPlayer? = nil
-    @State private var errorMessage: String? = nil
+    /// Strong @State ref required: AVURLAsset holds the delegate weakly.
+    /// If this is nil'd or not retained, the resource loader is deallocated
+    /// and playback silently fails with no error.
+    @State private var loaderRef: MediaResourceLoader? = nil
+
+    // MARK: State — KVO observers
     @State private var itemStatusObserver: NSKeyValueObservation? = nil
     @State private var likelyToKeepUpObserver: NSKeyValueObservation? = nil
     @State private var bufferEmptyObserver: NSKeyValueObservation? = nil
     @State private var bufferFullObserver: NSKeyValueObservation? = nil
-    @State private var timeObserverToken: Any? = nil
     @State private var timeControlObserver: NSKeyValueObservation? = nil
     @State private var rateObserver: NSKeyValueObservation? = nil
-    @State private var loaderRef: MediaResourceLoader? = nil
+    @State private var timeObserverToken: Any? = nil
+
+    // MARK: State — playback control
+    /// Prevents double-play when PlayerViewController re-appears after full-screen exit.
     @State private var hasAutoPlayed: Bool = false
+    @State private var errorMessage: String? = nil
     @State private var overlayState: PlaybackOverlayState = .loading("Loading media…")
+
     @StateObject private var audioState = AudioPlaybackState()
 
-    private var isVideo: Bool {
-        entry.fileType == "video"
-    }
+    private var isVideo: Bool { config.fileType == .video }
 
+    // MARK: - Body
 
     var body: some View {
         Group {
@@ -56,11 +155,12 @@ struct MediaPlayerView: View {
                             overlayContent
                         }
                     }
-                    .navigationTitle(entry.songTitle.isEmpty ? "Play Video" : entry.songTitle)
+                    .navigationTitle(titleText)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarTrailing) {
                             Button("Close") { close() }
+                                .accessibilityIdentifier("unified_player_close_button")
                         }
                     }
                 }
@@ -69,21 +169,20 @@ struct MediaPlayerView: View {
             }
         }
         .onAppear {
+            onAppear?()
             if isVideo {
                 configureNavigationBarAppearance()
             }
-            // Ensure audio plays even in silent mode
             do {
                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
-                logWithTimestamp("[Player] AudioSession error: \\(error.localizedDescription)")
+                logWithTimestamp("[Player] AudioSession error: \(error.localizedDescription)")
             }
-            // Only prepare player once
             if player == nil {
                 Task { await preparePlayer() }
             } else {
-                logWithTimestamp("[Player] MediaPlayerView appeared; player already initialized, skipping preparePlayer")
+                logWithTimestamp("[Player] UnifiedVideoPlayerView appeared; player already initialized, skipping preparePlayer")
             }
         }
         .onDisappear {
@@ -93,6 +192,16 @@ struct MediaPlayerView: View {
         }
         .ghFullScreenBackground(GHTheme.bg)
     }
+
+    // MARK: - Title
+
+    private var titleText: String {
+        // Phase 1: no label available at the player level; label arrives via UnifiedVideo
+        // in Phase 2+. For now fall back to generic strings matching MediaPlayerView behavior.
+        "Play \(isVideo ? "Video" : "Audio")"
+    }
+
+    // MARK: - Audio root
 
     @ViewBuilder
     private var audioRootContent: some View {
@@ -115,7 +224,7 @@ struct MediaPlayerView: View {
                     }
                 }
             }
-            .navigationTitle(entry.songTitle.isEmpty ? "Play Audio" : entry.songTitle)
+            .navigationTitle(titleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -123,45 +232,14 @@ struct MediaPlayerView: View {
                         logWithTimestamp("[AudioUI] NavBar Close tapped")
                         close()
                     }
+                    .accessibilityIdentifier("unified_player_close_button")
                 }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
     }
 
-    private func close() {
-        logWithTimestamp("[Player] Close tapped")
-        cleanup()
-        presentationMode.wrappedValue.dismiss()
-    }
-    
-    private func cleanup() {
-        logWithTimestamp("[Player] Cleaning up player resources")
-        player?.pause()
-        player?.replaceCurrentItem(with: nil)
-        itemStatusObserver?.invalidate()
-        itemStatusObserver = nil
-        likelyToKeepUpObserver?.invalidate()
-        likelyToKeepUpObserver = nil
-        bufferEmptyObserver?.invalidate()
-        bufferEmptyObserver = nil
-        bufferFullObserver?.invalidate()
-        bufferFullObserver = nil
-        timeControlObserver?.invalidate()
-        timeControlObserver = nil
-        rateObserver?.invalidate()
-        rateObserver = nil
-        if let token = timeObserverToken {
-            player?.removeTimeObserver(token)
-            timeObserverToken = nil
-        }
-        NotificationCenter.default.removeObserver(self)
-        player = nil
-        loaderRef = nil
-        Task { @MainActor in
-            audioState.reset()
-        }
-    }
+    // MARK: - Overlay
 
     @ViewBuilder
     private var overlayContent: some View {
@@ -174,6 +252,7 @@ struct MediaPlayerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(player == nil ? 0 : 0.45))
             .allowsHitTesting(false)
+            .accessibilityIdentifier("unified_player_overlay")
         case .failed(let title, let detail):
             VStack(alignment: .center, spacing: 10) {
                 Text(title)
@@ -186,11 +265,13 @@ struct MediaPlayerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(0.55))
             .allowsHitTesting(false)
+            .accessibilityIdentifier("unified_player_overlay")
         case .none:
             EmptyView()
         }
     }
 
+    // MARK: - Audio player content
 
     private func audioPlayerContent(player: AVPlayer) -> some View {
         VStack(spacing: 24) {
@@ -198,7 +279,7 @@ struct MediaPlayerView: View {
             Image(systemName: audioState.isPlaying ? "waveform.circle.fill" : "music.note")
                 .font(.system(size: 88))
                 .foregroundColor(.white)
-            Text(entry.songTitle.isEmpty ? entry.fileName : entry.songTitle)
+            Text(titleText)
                 .font(.title3)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
@@ -214,9 +295,7 @@ struct MediaPlayerView: View {
                 Slider(
                     value: Binding(
                         get: { audioState.isScrubbing ? audioState.scrubPositionSeconds : audioState.currentTimeSeconds },
-                        set: { newValue in
-                            audioState.scrubPositionSeconds = newValue
-                        }
+                        set: { newValue in audioState.scrubPositionSeconds = newValue }
                     ),
                     in: 0...max(audioState.durationSeconds, 1),
                     onEditingChanged: { editing in
@@ -230,6 +309,7 @@ struct MediaPlayerView: View {
                     }
                 )
                 .accentColor(.white)
+                .accessibilityIdentifier("unified_player_audio_scrubber")
                 HStack {
                     Text(formattedTime(audioState.isScrubbing ? audioState.scrubPositionSeconds : audioState.currentTimeSeconds))
                     Spacer()
@@ -258,6 +338,7 @@ struct MediaPlayerView: View {
                         .foregroundColor(.white)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .accessibilityIdentifier("unified_player_audio_play_pause")
                 if audioState.currentTimeSeconds <= 0.1 && !audioState.isPlaying {
                     Button(action: {
                         retryAudioPlayback(player: player)
@@ -271,6 +352,7 @@ struct MediaPlayerView: View {
                             .cornerRadius(10)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("unified_player_audio_retry")
                 }
             }
             Spacer()
@@ -284,13 +366,50 @@ struct MediaPlayerView: View {
         }
     }
 
+    // MARK: - Close / cleanup
+
+    private func close() {
+        logWithTimestamp("[Player] Close tapped")
+        cleanup()
+        presentationMode.wrappedValue.dismiss()
+    }
+
+    private func cleanup() {
+        logWithTimestamp("[Player] Cleaning up player resources")
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        itemStatusObserver?.invalidate()
+        itemStatusObserver = nil
+        likelyToKeepUpObserver?.invalidate()
+        likelyToKeepUpObserver = nil
+        bufferEmptyObserver?.invalidate()
+        bufferEmptyObserver = nil
+        bufferFullObserver?.invalidate()
+        bufferFullObserver = nil
+        timeControlObserver?.invalidate()
+        timeControlObserver = nil
+        rateObserver?.invalidate()
+        rateObserver = nil
+        if let token = timeObserverToken {
+            player?.removeTimeObserver(token)
+            timeObserverToken = nil
+        }
+        NotificationCenter.default.removeObserver(self)
+        player = nil
+        loaderRef = nil
+        Task { @MainActor in
+            audioState.reset()
+        }
+    }
+
+    // MARK: - Navigation bar appearance
+
     private func configureNavigationBarAppearance() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor.black
         appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
         appearance.largeTitleTextAttributes = [.foregroundColor: UIColor.white]
-
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
@@ -300,12 +419,13 @@ struct MediaPlayerView: View {
     private func resetNavigationBarAppearance() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithDefaultBackground()
-
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
         UINavigationBar.appearance().tintColor = nil
     }
+
+    // MARK: - Overlay helpers
 
     private func showLoading(_ message: String = "Loading media…") {
         errorMessage = nil
@@ -317,15 +437,13 @@ struct MediaPlayerView: View {
         overlayState = .failed(title: title, detail: message)
     }
 
+    // MARK: - Audio helpers
+
     private var audioStatusMessage: String? {
-        if let errorMessage {
-            return errorMessage
-        }
+        if let errorMessage { return errorMessage }
         switch overlayState {
-        case .loading(let message):
-            return message
-        case .failed(_, let detail):
-            return detail
+        case .loading(let message): return message
+        case .failed(_, let detail): return detail
         case .none:
             if player != nil, audioState.currentTimeSeconds <= 0.1, !audioState.isPlaying {
                 return "Audio is preparing. You can tap Retry or Close."
@@ -375,96 +493,100 @@ struct MediaPlayerView: View {
         logWithTimestamp("\(prefix) isPlaying=\(audioState.isPlaying) current=\(audioState.currentTimeSeconds) duration=\(audioState.durationSeconds) scrub=\(audioState.scrubPositionSeconds) isScrubbing=\(audioState.isScrubbing) overlay=\(String(describing: overlayState)) playerExists=\(player != nil)")
     }
 
+    // MARK: - preparePlayer
+
     private func preparePlayer() async {
-            showLoading()
-            guard let mediaURL = URL(string: entry.url, relativeTo: baseURL) else {
-                showFailure("Invalid media URL")
-                logWithTimestamp("[Player] Invalid media URL for file=\(entry.fileName)")
+        showLoading()
+
+        // 1. Construct mediaURL
+        guard let mediaURL = URL(string: config.url.absoluteString) else {
+            showFailure("Invalid media URL")
+            logWithTimestamp("[Player] Invalid media URL: \(config.url)")
+            return
+        }
+        logWithTimestamp("[Player] Media URL components: scheme=\(mediaURL.scheme ?? "<nil>") host=\(mediaURL.host ?? "<nil>") path=\(mediaURL.path)")
+
+        // 2. Build auth headers
+        var headers: [String: String] = [:]
+        config.credential?.apply(to: &headers)
+        logWithTimestamp("[Player] Building AVURLAsset; url=\(mediaURL.absoluteString); auth=\(headers["Authorization"] != nil); insecureTLS=\(config.allowInsecureTLS)")
+
+        // 3. HEAD preflight — logs status, Content-Type, Content-Length, Accept-Ranges
+        await headDiagnostics(url: mediaURL, headers: headers)
+
+        // 4. Build asset — proxy or direct
+        let asset: AVURLAsset
+        let shouldUseProxyLoader = config.allowInsecureTLS || !headers.isEmpty
+        if shouldUseProxyLoader {
+            let host = mediaURL.host ?? ""
+            let port = mediaURL.port.map { ":\($0)" } ?? ""
+            let path = mediaURL.path
+            let query = mediaURL.query.map { "?\($0)" } ?? ""
+            logWithTimestamp("[Player] Proxy parts host=\(host) port=\(port) path=\(path) query=\(query)")
+            let customString = "gighive://\(host)\(port)\(path)\(query)"
+            guard let custom = URL(string: customString) else {
+                logWithTimestamp("[Player] Proxy URL build failed string=\(customString)")
+                showFailure("Unsupported media URL")
                 return
             }
-            logWithTimestamp("[Player] Media URL components: scheme=\(mediaURL.scheme ?? "<nil>") host=\(mediaURL.host ?? "<nil>") path=\(mediaURL.path)")
-            var headers: [String: String] = [:]
-            credential?.apply(to: &headers)
-            logWithTimestamp("[Player] Building AVURLAsset; url=\(mediaURL.absoluteString); auth=\(headers["Authorization"] != nil); insecureTLS=\(allowInsecureTLS)")
+            logWithTimestamp("[Player] Using proxy loader; custom URL=\(custom.absoluteString)")
+            let loader = MediaResourceLoader(allowInsecureTLS: config.allowInsecureTLS, credential: config.credential)
+            self.loaderRef = loader
+            asset = AVURLAsset(url: custom)
+            asset.resourceLoader.setDelegate(loader, queue: .main)
+        } else {
+            asset = AVURLAsset(url: mediaURL, options: [
+                "AVURLAssetHTTPHeaderFieldsKey": headers
+            ])
+        }
 
-            // VERBOSE: Preflight HEAD request to inspect HTTP status and headers
-            await headDiagnostics(url: mediaURL, headers: headers)
+        // 5. Create item and player.
+        // NOTE: Do NOT call loadValuesAsynchronously before creating the player item.
+        // loadValuesAsynchronously permanently caches key-load results. Calling it
+        // before AVPlayerItem is created poisons keys that AVFoundation's internal
+        // recovery logic would otherwise resolve.
+        let item = AVPlayerItem(asset: asset)
 
-            let asset: AVURLAsset
-            let shouldUseProxyLoader = allowInsecureTLS || !headers.isEmpty
-            if shouldUseProxyLoader {
-                // Route through resource loader proxy with custom scheme so AVFoundation
-                // does not depend on direct header-field handling for authenticated media.
-                let host = mediaURL.host ?? ""
-                let port = mediaURL.port.map { ":\($0)" } ?? ""
-                let path = mediaURL.path
-                let query = mediaURL.query.map { "?\($0)" } ?? ""
-                logWithTimestamp("[Player] Proxy parts host=\(host) port=\(port) path=\(path) query=\(query)")
-                let customString = "gighive://\(host)\(port)\(path)\(query)"
-                guard let custom = URL(string: customString) else {
-                    logWithTimestamp("[Player] Proxy URL build failed string=\(customString)")
-                    showFailure("Unsupported media URL")
-                    return
-                }
-                logWithTimestamp("[Player] Proxy custom URL=\(custom.absoluteString) (host=\(host), port=\(port), path=\(path))")
-                let loader = MediaResourceLoader(allowInsecureTLS: allowInsecureTLS, credential: credential)
-                self.loaderRef = loader // retain strongly for the life of this view
-                asset = AVURLAsset(url: custom)
-                asset.resourceLoader.setDelegate(loader, queue: .main)
-                logWithTimestamp("[Player] Using proxy loader for media")
+        // 6. Notification observers (registered before assigning player so no events are missed)
+        NotificationCenter.default.addObserver(forName: .AVPlayerItemNewAccessLogEntry, object: item, queue: .main) { _ in
+            if let logs = item.accessLog()?.events, let last = logs.last {
+                let fields: [String: Any] = [
+                    "uri": last.uri ?? "<nil>",
+                    "numberOfMediaRequests": last.numberOfMediaRequests,
+                    "playbackStartDate": last.playbackStartDate?.description ?? "<nil>",
+                    "playbackStartOffset": last.playbackStartOffset,
+                    "observedBitrate": last.observedBitrate,
+                    "indicatedBitrate": last.indicatedBitrate,
+                    "numberOfBytesTransferred": last.numberOfBytesTransferred,
+                    "transferDuration": last.transferDuration,
+                    "mediaRequestsWWAN": last.mediaRequestsWWAN
+                ]
+                logWithTimestamp("[Player] AccessLog: \(fields)")
             } else {
-                // Direct path for public media when no custom loading behavior is needed
-                asset = AVURLAsset(url: mediaURL, options: [
-                    "AVURLAssetHTTPHeaderFieldsKey": headers
-                ])
+                logWithTimestamp("[Player] Access log entry (no details)")
             }
+        }
+        NotificationCenter.default.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main) { note in
+            let err = (note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? NSError)?.localizedDescription ?? "unknown"
+            logWithTimestamp("[Player] Failed to play: \(err)")
+            self.showFailure(err)
+        }
+        NotificationCenter.default.addObserver(forName: .AVPlayerItemPlaybackStalled, object: item, queue: .main) { _ in
+            self.logItemDiagnostics(item, prefix: "[Player] Playback stalled")
+            if self.errorMessage == nil {
+                self.showLoading("Buffering video...")
+            }
+        }
 
-            // NOTE: Do NOT call logAssetDiagnostics before creating the player item.
-            // loadValuesAsynchronously permanently caches key-load failures, which
-            // poisons the asset before AVPlayerItem/AVPlayer get a chance to load it
-            // using their own internal recovery logic.
-            let item = AVPlayerItem(asset: asset)
+        let newPlayer = AVPlayer(playerItem: item)
+        self.player = newPlayer
+        if !self.isVideo {
+            self.overlayState = .none
+        }
 
-            // Observe status changes for debugging
-            NotificationCenter.default.addObserver(forName: .AVPlayerItemNewAccessLogEntry, object: item, queue: .main) { _ in
-                if let logs = item.accessLog()?.events, let last = logs.last {
-                    let fields: [String: Any] = [
-                        "uri": last.uri ?? "<nil>",
-                        "numberOfMediaRequests": last.numberOfMediaRequests,
-                        "playbackStartDate": last.playbackStartDate?.description ?? "<nil>",
-                        "playbackStartOffset": last.playbackStartOffset,
-                        "observedBitrate": last.observedBitrate,
-                        "indicatedBitrate": last.indicatedBitrate,
-                        "numberOfBytesTransferred": last.numberOfBytesTransferred,
-                        "transferDuration": last.transferDuration,
-                        "mediaRequestsWWAN": last.mediaRequestsWWAN
-                    ]
-                    logWithTimestamp("[Player] AccessLog: \(fields)")
-                } else {
-                    logWithTimestamp("[Player] Access log entry (no details)")
-                }
-            }
-            NotificationCenter.default.addObserver(forName: .AVPlayerItemFailedToPlayToEndTime, object: item, queue: .main) { note in
-                let err = (note.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? NSError)?.localizedDescription ?? "unknown"
-                logWithTimestamp("[Player] Failed to play: \(err)")
-                self.showFailure(err)
-            }
-            NotificationCenter.default.addObserver(forName: .AVPlayerItemPlaybackStalled, object: item, queue: .main) { _ in
-                self.logItemDiagnostics(item, prefix: "[Player] Playback stalled")
-                if self.errorMessage == nil {
-                    self.showLoading("Buffering video...")
-                }
-            }
-
-            let newPlayer = AVPlayer(playerItem: item)
-            self.player = newPlayer
-            if !self.isVideo {
-                self.overlayState = .none
-            }
-
-            // KVO for item.status
-            itemStatusObserver = item.observe(\.status, options: [.initial, .new]) { _, _ in
-                Task { @MainActor in
+        // 7. KVO — itemStatusObserver
+        itemStatusObserver = item.observe(\.status, options: [.initial, .new]) { _, _ in
+            Task { @MainActor in
                 switch item.status {
                 case .unknown:
                     self.logItemDiagnostics(item, prefix: "[Player] Item status: unknown")
@@ -497,13 +619,12 @@ struct MediaPlayerView: View {
                     self.logAssetKeyStatus(asset, mediaURL: mediaURL)
                     let nsErr = item.error as NSError?
                     logWithTimestamp("[Player] Item NSError domain=\(nsErr?.domain ?? "<nil>") code=\(nsErr?.code ?? 0) userInfo=\(nsErr?.userInfo ?? [:])")
-                    // Check if the underlying cause is our loader's range-request error
                     let loaderDomain = "GigHiveMediaResourceLoader"
                     let underlying = nsErr?.userInfo[NSUnderlyingErrorKey] as? NSError
                     if let loaderMsg = self.loaderRef?.lastFailureMessage {
                         self.showFailure(loaderMsg, title: loaderMsg)
                     } else if underlying?.domain == loaderDomain,
-                       let loaderMsg = underlying?.localizedDescription {
+                              let loaderMsg = underlying?.localizedDescription {
                         self.showFailure(loaderMsg, title: loaderMsg)
                     } else if nsErr?.domain == loaderDomain {
                         self.showFailure(err, title: err)
@@ -513,29 +634,28 @@ struct MediaPlayerView: View {
                 @unknown default:
                     logWithTimestamp("[Player] Item status: unknown default")
                 }
-                }
             }
+        }
 
-            likelyToKeepUpObserver = item.observe(\.isPlaybackLikelyToKeepUp, options: [.initial, .new]) { _, change in
-                let newValue = change.newValue ?? false
-                self.logItemDiagnostics(item, prefix: "[PlayerItem] isPlaybackLikelyToKeepUp=\(newValue)")
-            }
+        // 8. KVO — buffer diagnostics (log only)
+        likelyToKeepUpObserver = item.observe(\.isPlaybackLikelyToKeepUp, options: [.initial, .new]) { _, change in
+            let newValue = change.newValue ?? false
+            self.logItemDiagnostics(item, prefix: "[PlayerItem] isPlaybackLikelyToKeepUp=\(newValue)")
+        }
+        bufferEmptyObserver = item.observe(\.isPlaybackBufferEmpty, options: [.initial, .new]) { _, change in
+            let newValue = change.newValue ?? false
+            self.logItemDiagnostics(item, prefix: "[PlayerItem] isPlaybackBufferEmpty=\(newValue)")
+        }
+        bufferFullObserver = item.observe(\.isPlaybackBufferFull, options: [.initial, .new]) { _, change in
+            let newValue = change.newValue ?? false
+            self.logItemDiagnostics(item, prefix: "[PlayerItem] isPlaybackBufferFull=\(newValue)")
+        }
 
-            bufferEmptyObserver = item.observe(\.isPlaybackBufferEmpty, options: [.initial, .new]) { _, change in
-                let newValue = change.newValue ?? false
-                self.logItemDiagnostics(item, prefix: "[PlayerItem] isPlaybackBufferEmpty=\(newValue)")
-            }
-
-            bufferFullObserver = item.observe(\.isPlaybackBufferFull, options: [.initial, .new]) { _, change in
-                let newValue = change.newValue ?? false
-                self.logItemDiagnostics(item, prefix: "[PlayerItem] isPlaybackBufferFull=\(newValue)")
-            }
-
-            // Observe timeControlStatus to know when playback starts/waits
-            timeControlObserver = newPlayer.observe(\.timeControlStatus, options: [.initial, .new]) { player, _ in
-                let currentTime = player.currentTime().seconds
-                let rate = player.rate
-                Task { @MainActor in
+        // 9. KVO — timeControlStatus
+        timeControlObserver = newPlayer.observe(\.timeControlStatus, options: [.initial, .new]) { player, _ in
+            let currentTime = player.currentTime().seconds
+            let rate = player.rate
+            Task { @MainActor in
                 switch player.timeControlStatus {
                 case .paused:
                     logWithTimestamp("[Player] ⏸️ timeControlStatus=paused rate=\(rate) time=\(currentTime)")
@@ -554,51 +674,55 @@ struct MediaPlayerView: View {
                 case .playing:
                     logWithTimestamp("[Player] ▶️ timeControlStatus=playing rate=\(rate) time=\(currentTime)")
                     self.audioState.isPlaying = true
-                    if !self.hasAutoPlayed {
-                        self.hasAutoPlayed = true
-                    }
+                    if !self.hasAutoPlayed { self.hasAutoPlayed = true }
                     self.overlayState = .none
                 @unknown default:
                     logWithTimestamp("[Player] ❓ timeControlStatus=unknown rate=\(rate) time=\(currentTime)")
                 }
-                }
             }
-            
-            // Observe rate changes directly
-            rateObserver = newPlayer.observe(\.rate, options: [.old, .new]) { player, change in
-                let oldRate = change.oldValue ?? 0.0
-                let newRate = change.newValue ?? 0.0
-                let currentTime = player.currentTime().seconds
-                logWithTimestamp("[Player] 🎚️ Rate changed: \(oldRate) -> \(newRate) at time=\(currentTime)")
-            }
+        }
 
-            timeObserverToken = newPlayer.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: CMTimeScale(NSEC_PER_SEC)), queue: .main) { time in
-                let seconds = time.seconds
-                Task { @MainActor in
-                    if seconds.isFinite {
-                        self.audioState.currentTimeSeconds = seconds
-                        if !self.audioState.isScrubbing {
-                            self.audioState.scrubPositionSeconds = seconds
-                        }
-                        if !self.isVideo, seconds > 0 {
-                            self.overlayState = .none
-                        }
-                    }
-                    let duration = item.duration.seconds
-                    if duration.isFinite, duration > 0 {
-                        self.audioState.durationSeconds = duration
-                    }
-                }
-            }
+        // 10. KVO — rate (log only)
+        rateObserver = newPlayer.observe(\.rate, options: [.old, .new]) { player, change in
+            let oldRate = change.oldValue ?? 0.0
+            let newRate = change.newValue ?? 0.0
+            let currentTime = player.currentTime().seconds
+            logWithTimestamp("[Player] 🎚️ Rate changed: \(oldRate) -> \(newRate) at time=\(currentTime)")
+        }
 
-            // Add a short timeout to report if playback does not become ready
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                if self.errorMessage == nil, item.status != .readyToPlay {
-                    self.logItemDiagnostics(item, prefix: "[Player] Still not ready after 3s")
-                    self.showLoading("Loading media…")
+        // 11. Periodic time observer
+        timeObserverToken = newPlayer.addPeriodicTimeObserver(
+            forInterval: CMTime(seconds: 0.25, preferredTimescale: CMTimeScale(NSEC_PER_SEC)),
+            queue: .main
+        ) { time in
+            let seconds = time.seconds
+            Task { @MainActor in
+                if seconds.isFinite {
+                    self.audioState.currentTimeSeconds = seconds
+                    if !self.audioState.isScrubbing {
+                        self.audioState.scrubPositionSeconds = seconds
+                    }
+                    if !self.isVideo, seconds > 0 {
+                        self.overlayState = .none
+                    }
+                }
+                let duration = item.duration.seconds
+                if duration.isFinite, duration > 0 {
+                    self.audioState.durationSeconds = duration
                 }
             }
+        }
+
+        // 12. 3-second readiness timeout — diagnostic only, does not abort
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            if self.errorMessage == nil, item.status != .readyToPlay {
+                self.logItemDiagnostics(item, prefix: "[Player] Still not ready after 3s")
+                self.showLoading("Loading media…")
+            }
+        }
     }
+
+    // MARK: - Diagnostic helpers
 
     private func logItemDiagnostics(_ item: AVPlayerItem, prefix: String) {
         let durationSeconds = item.duration.seconds
@@ -624,7 +748,7 @@ struct MediaPlayerView: View {
         }
     }
 
-    /// Non-destructive asset key status check.  Only reads cached status via
+    /// Non-destructive asset key status check. Only reads cached status via
     /// statusOfValue(forKey:) — never calls loadValuesAsynchronously, so it
     /// cannot poison keys that AVPlayerItem has not attempted to load yet.
     private func logAssetKeyStatus(_ asset: AVURLAsset, mediaURL: URL) {
@@ -643,18 +767,12 @@ struct MediaPlayerView: View {
 
     private func assetKeyStatusDescription(_ status: AVKeyValueStatus) -> String {
         switch status {
-        case .unknown:
-            return "unknown"
-        case .loading:
-            return "loading"
-        case .loaded:
-            return "loaded"
-        case .failed:
-            return "failed"
-        case .cancelled:
-            return "cancelled"
-        @unknown default:
-            return "unknown-default"
+        case .unknown: return "unknown"
+        case .loading: return "loading"
+        case .loaded: return "loaded"
+        case .failed: return "failed"
+        case .cancelled: return "cancelled"
+        @unknown default: return "unknown-default"
         }
     }
 
@@ -663,7 +781,9 @@ struct MediaPlayerView: View {
         request.httpMethod = "HEAD"
         headers.forEach { k, v in request.setValue(v, forHTTPHeaderField: k) }
         let cfg = URLSessionConfiguration.ephemeral
-        let session: URLSession = allowInsecureTLS ? URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil) : URLSession(configuration: cfg)
+        let session: URLSession = config.allowInsecureTLS
+            ? URLSession(configuration: cfg, delegate: InsecureTrustDelegate.shared, delegateQueue: nil)
+            : URLSession(configuration: cfg)
         do {
             let (_, response) = try await session.data(for: request)
             if let http = response as? HTTPURLResponse {

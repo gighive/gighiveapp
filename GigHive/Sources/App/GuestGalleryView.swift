@@ -2,37 +2,8 @@ import SwiftUI
 import AVKit
 import UIKit
 
-private final class ThumbnailLoader: ObservableObject {
-    @Published var image: UIImage?
-    func load(from url: URL) {
-        guard image == nil else { return }
-        URLSession.shared.dataTask(with: url) { data, _, _ in
-            guard let data = data, let img = UIImage(data: data) else { return }
-            DispatchQueue.main.async { self.image = img }
-        }.resume()
-    }
-}
-
-private struct AsyncThumbnail: View {
-    let url: URL?
-    @StateObject private var loader = ThumbnailLoader()
-    var body: some View {
-        Group {
-            if let img = loader.image {
-                Image(uiImage: img)
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                Color.clear
-            }
-        }
-        .frame(width: 56, height: 40)
-        .cornerRadius(4)
-        .onAppear {
-            if let url = url { loader.load(from: url) }
-        }
-    }
-}
+// ThumbnailLoader and AsyncThumbnail extracted to ThumbnailLoader.swift (Step 2).
+// They are internal and visible here without import.
 
 private enum GalleryAlert {
     case reportConfirm(GuestGalleryVideo)
@@ -181,10 +152,18 @@ struct GuestGalleryView: View {
                             GHCard(pad: 10) {
                                 HStack(alignment: .center, spacing: 12) {
                                     if let streamURL = buildStreamURL(video: video) {
-                                        NavigationLink(destination: VideoPlayerView(url: streamURL, onAppear: {
-                                            logWithTimestamp("[Gallery] VideoPlayer appeared — marking viewed uploadJobId=\(video.uploadJobId)")
-                                            markViewed(video.uploadJobId)
-                                        })) {
+                                        NavigationLink(destination: UnifiedVideoPlayerView(
+                                            config: UnifiedVideoPlayerConfig(
+                                                url: streamURL,
+                                                credential: nil,
+                                                allowInsecureTLS: false,
+                                                fileType: .video
+                                            ),
+                                            onAppear: {
+                                                logWithTimestamp("[Gallery] VideoPlayer appeared — marking viewed uploadJobId=\(video.uploadJobId)")
+                                                markViewed(video.uploadJobId)
+                                            }
+                                        )) {
                                             HStack(spacing: 10) {
                                                 Image(systemName: "play.circle.fill")
                                                     .font(.system(size: 28))

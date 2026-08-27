@@ -47,6 +47,9 @@
 		ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */; };
 		F60FCD42EE8D260B67BA585A /* GuestUploadSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06508823FA767D58BEA3D2B5 /* GuestUploadSession.swift */; };
 		FA5E96B35E2ADCD8AD38030B /* FinalizeResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83875BADDD06D274A675799E /* FinalizeResponse.swift */; };
+		VC001A0000000000000000001 /* VideoListContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = VC002A0000000000000000001 /* VideoListContext.swift */; };
+		TL001A0000000000000000001 /* ThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = TL002A0000000000000000001 /* ThumbnailLoader.swift */; };
+		UV001A0000000000000000001 /* UnifiedVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */; };
 		FF1B8025255AE5963121111A /* UploaderDeleteTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CBE9129BDB286AF1ACC2064 /* UploaderDeleteTokenStore.swift */; };
 /* End PBXBuildFile section */
 
@@ -112,6 +115,9 @@
 		E335CC3B564F898AC4688953 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
 		E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDetailView.swift; sourceTree = "<group>"; };
 		FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
+		VC002A0000000000000000001 /* VideoListContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoListContext.swift; sourceTree = "<group>"; };
+		TL002A0000000000000000001 /* ThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailLoader.swift; sourceTree = "<group>"; };
+		UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedVideoPlayerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -198,6 +204,9 @@
 				B37F58C5C78FC637B08F272D /* UploadPayload+GuestUpload.swift */,
 				3277F5DA4FFFDD911D801529 /* UploadStateStore.swift */,
 				89281475A43AA7EDF94EE3D1 /* UploadView.swift */,
+				VC002A0000000000000000001 /* VideoListContext.swift */,
+				TL002A0000000000000000001 /* ThumbnailLoader.swift */,
+				UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */,
 			);
 			name = App;
 			path = Sources/App;
@@ -384,6 +393,9 @@
 				CE1EB811FCF125460F8EEC41 /* UploadStateStore.swift in Sources */,
 				62735CD70A08C4FD885C79FC /* UploadView.swift in Sources */,
 				FF1B8025255AE5963121111A /* UploaderDeleteTokenStore.swift in Sources */,
+				VC001A0000000000000000001 /* VideoListContext.swift in Sources */,
+				TL001A0000000000000000001 /* ThumbnailLoader.swift in Sources */,
+				UV001A0000000000000000001 /* UnifiedVideoPlayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

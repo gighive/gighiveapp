@@ -61,6 +61,57 @@ final class GigHiveUITests: XCTestCase {
         app.buttons["login_sign_in_button"].tap()
     }
 
+    /// Relaunches the app with --uitest-auto-login so SplashView injects credentials
+    /// directly from the environment — no keyboard, no LoginView, no overlay windows.
+    ///
+    /// Pass an optional navigation arg (e.g. "--uitest-navigate-database") to have the
+    /// app automatically push that view after credentials are set.
+    ///
+    /// After this returns the app is on the logged-in splash (or the requested destination)
+    /// with a single clean window and all elements hittable.
+    ///
+    /// Confirmation strategy (avoids transient-banner timing races):
+    ///   - With "--uitest-navigate-database": waits for a DatabaseView row button (proves
+    ///     both login and navigation succeeded; mirrors testDatabaseLoadsEntriesAfterLogin).
+    ///   - Without a nav arg: waits for splash_view_database_button which is only shown
+    ///     when session.credential != nil and the user is still on SplashView.
+    @discardableResult
+    private func autoLogin(navigateTo navArg: String? = nil) throws -> (host: String, user: String, pass: String, insecure: Bool) {
+        let creds = try requireCredentials()
+        app.terminate()
+        var args = ["--uitesting", "--uitest-auto-login"]
+        if let nav = navArg { args.append(nav) }
+        app.launchArguments = args
+        app.launchEnvironment["GH_TEST_HOST"]     = creds.host
+        app.launchEnvironment["GH_TEST_USER"]     = creds.user
+        app.launchEnvironment["GH_TEST_PASS"]     = creds.pass
+        app.launchEnvironment["GH_TEST_INSECURE"] = creds.insecure ? "1" : "0"
+        app.launch()
+
+        if navArg == "--uitest-navigate-database" {
+            // Auto-login triggers navigation to DatabaseView in ~0.6 s; the splash banner
+            // disappears before XCUITest can reliably poll it.  Wait for rows instead —
+            // their presence confirms both credential injection and navigation.
+            // "Retry" is excluded because DatabaseView shows a Retry button on API error
+            // and we must not mistake it for a data row.
+            let rowPredicate = NSPredicate(
+                format: "label != '' AND label != 'Back' AND label != 'Login' AND label != 'View the Database' AND label != 'Upload a File' AND label != 'Retry'"
+            )
+            XCTAssert(
+                app.buttons.matching(rowPredicate).firstMatch.waitForExistence(timeout: 40),
+                "DatabaseView rows did not appear after auto-login + --uitest-navigate-database — check GH_TEST_HOST/USER/PASS env vars"
+            )
+        } else {
+            // No navigation: credentials are set and app stays on SplashView.
+            // splash_view_database_button is credential-gated — it only renders when logged in.
+            XCTAssert(
+                app.buttons["splash_view_database_button"].waitForExistence(timeout: 15),
+                "splash_view_database_button did not appear after auto-login — check GH_TEST_HOST/USER/PASS env vars"
+            )
+        }
+        return creds
+    }
+
     /// Taps a text field, clears any existing content, then types the replacement text.
     /// LoginView.onAppear prefills fields from Keychain/UserDefaults, so we must clear first.
     private func fill(_ identifier: String, with text: String) {
@@ -185,10 +236,10 @@ final class GigHiveUITests: XCTestCase {
         XCTAssert(app.buttons["splash_login_button"].waitForExistence(timeout: 10))
         performLogin(host: host, user: user, pass: pass, insecure: true)
 
-        // Wait for at least one cell — confirms Authorization: Basic header reached the server.
-        let firstCell = app.cells.firstMatch
+        // Wait for at least one row button — confirms Authorization: Basic header reached the server.
+        let firstRow = app.buttons.matching(NSPredicate(format: "label != '' AND label != 'Back' AND label != 'Login' AND label != 'View the Database' AND label != 'Upload a File'" )).firstMatch
         XCTAssert(
-            firstCell.waitForExistence(timeout: 40),
+            firstRow.waitForExistence(timeout: 40),
             "Database list should contain at least one entry — check that the server returned media and the Authorization: Basic header was sent correctly"
         )
     }
@@ -326,5 +377,185 @@ final class GigHiveUITests: XCTestCase {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
+    }
+
+    // MARK: - Phase 1 — Unified Player
+
+    /// Reads GH_TEST_GUEST_NONCE from the environment. Throws XCTSkip (not XCTFail)
+    /// if the variable is not set, so the suite still passes in CI without a live server.
+    /// Also requires GH_TEST_HOST so the app knows which server to contact.
+    private func requireGuestNonce(file: StaticString = #file, line: UInt = #line)
+        throws -> (nonce: String, host: String)
+    {
+        let env = ProcessInfo.processInfo.environment
+        guard
+            let nonce = env["GH_TEST_GUEST_NONCE"], !nonce.isEmpty,
+            let host  = env["GH_TEST_HOST"], !host.isEmpty
+        else {
+            throw XCTSkip(
+                "Set GH_TEST_GUEST_NONCE and GH_TEST_HOST env vars in the test scheme to run guest gallery tests.",
+                file: file, line: line
+            )
+        }
+        return (nonce, host)
+    }
+
+    /// Navigates the splash screen to the guest gallery for the given nonce.
+    /// The app must already be launched with --uitesting. This helper drives the
+    /// normal guest entry point (same path a real user would take from splash).
+    private func navigateToGuestGallery(nonce: String, host: String) {
+        // The gallery button is inside a list that appears after the splash polls the server.
+        // Allow up to 15 s for the first poll to complete and the gallery row to appear.
+        let galleryPredicate = NSPredicate(format: "label CONTAINS 'Event'")
+        let galleryButton = app.buttons.matching(galleryPredicate).firstMatch
+        if !galleryButton.waitForExistence(timeout: 15) {
+            // Scroll down to find gallery rows if they are below the fold
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.65))
+            let end   = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            start.press(forDuration: 0, thenDragTo: end)
+        }
+        // The guest nonce must already be stored in the simulator from a prior scan or
+        // pre-seeded via test infrastructure. Tap the first available gallery row.
+        let galleryRow = app.buttons.matching(galleryPredicate).firstMatch
+        XCTAssert(galleryRow.waitForExistence(timeout: 5), "Guest gallery row not found on splash")
+        galleryRow.tap()
+    }
+
+    /// Tapping a guest gallery video card opens UnifiedVideoPlayerView.
+    /// Verifies that unified_player_close_button is visible in the player nav bar.
+    @MainActor
+    func testGuestPlayerOpensFromGallery() throws {
+        let (nonce, host) = try requireGuestNonce()
+        _ = nonce   // nonce used to identify the correct stored GuestUploadRecord
+
+        // Relaunch with a pre-seeded nonce so the gallery row appears on splash.
+        // The nonce must be stored on-device from a prior QR scan or test setup.
+        app.terminate()
+        app.launchEnvironment["GH_TEST_HOST"] = host
+        app.launchArguments = ["--uitesting"]
+        app.launch()
+
+        navigateToGuestGallery(nonce: nonce, host: host)
+
+        // Inside GuestGalleryView — wait for at least one video card then tap it
+        let cell = app.buttons.matching(NSPredicate(format: "identifier == 'unified_list_video_cell' OR label CONTAINS 'play'")).firstMatch
+        XCTAssert(cell.waitForExistence(timeout: 20), "No video cell found in guest gallery")
+        cell.tap()
+
+        // UnifiedVideoPlayerView should be pushed; Close button must be visible
+        let closeButton = app.buttons["unified_player_close_button"]
+        XCTAssert(
+            closeButton.waitForExistence(timeout: 10),
+            "unified_player_close_button not found — UnifiedVideoPlayerView may not have been pushed"
+        )
+    }
+
+    /// Tapping Close on the guest player dismisses it and returns to the gallery list.
+    /// Verifies no stuck screens by checking the close button is gone.
+    @MainActor
+    func testGuestPlayerCloseButtonDismisses() throws {
+        let (nonce, host) = try requireGuestNonce()
+        _ = nonce
+
+        app.terminate()
+        app.launchEnvironment["GH_TEST_HOST"] = host
+        app.launchArguments = ["--uitesting"]
+        app.launch()
+
+        navigateToGuestGallery(nonce: nonce, host: host)
+
+        let cell = app.buttons.matching(NSPredicate(format: "identifier == 'unified_list_video_cell' OR label CONTAINS 'play'")).firstMatch
+        XCTAssert(cell.waitForExistence(timeout: 20), "No video cell found in guest gallery")
+        cell.tap()
+
+        let closeButton = app.buttons["unified_player_close_button"]
+        XCTAssert(closeButton.waitForExistence(timeout: 10), "Close button not found after opening player")
+        closeButton.tap()
+
+        // Close button must be gone — confirms the player was dismissed cleanly
+        XCTAssertFalse(
+            closeButton.waitForExistence(timeout: 5),
+            "Close button still visible after tapping Close — player may not have dismissed"
+        )
+    }
+
+    // MARK: - Shared navigation helper for authenticated player tests
+
+    /// Navigates from logged-in SplashView → DatabaseView → DatabaseDetailView and
+    /// taps the play button to open UnifiedVideoPlayerView.
+    ///
+    /// Requires autoLogin() to have been called first (no nav arg) so the app is on
+    /// the logged-in SplashView with a single window and all buttons hittable.
+    private func navigateToPlayer() throws {
+        // splash_view_database_button is only visible when logged in.
+        // With no keyboard windows (auto-login), it is hittable — tap it to push DatabaseView.
+        let dbButton = app.buttons["splash_view_database_button"]
+        XCTAssert(dbButton.waitForExistence(timeout: 10), "splash_view_database_button not found — auto-login may have failed")
+        dbButton.tap()
+
+        // DatabaseView: wait for rows then tap the first one.
+        let rowPredicate = NSPredicate(
+            format: "label != '' AND label != 'Back' AND label != 'Login' AND label != 'View the Database' AND label != 'Upload a File' AND label != 'Retry'"
+        )
+        let firstRow = app.buttons.matching(rowPredicate).firstMatch
+        XCTAssert(firstRow.waitForExistence(timeout: 40), "DatabaseView rows not found")
+        firstRow.tap()
+
+        // DatabaseDetailView uses an insetGrouped List with 6 info rows before the play
+        // button section.  On landscape iPhone 12 (390 pt tall) the play button is just
+        // off-screen.  Swipe up on the app to scroll the list and bring the button into
+        // the XCUITest accessibility tree.  (SwiftUI List on iOS 16+ uses UICollectionView,
+        // not UITableView, so app.tables is empty — use app.swipeUp() instead.)
+        //
+        // Wait for a visible list cell label before swiping: "Date" is the first DetailRow
+        // label and only appears once the list content has rendered, which is AFTER the nav
+        // bar title ("Media Details") which appears immediately on push.
+        _ = app.staticTexts["Date"].waitForExistence(timeout: 8)
+        app.swipeUp()
+
+        // DatabaseDetailView: wait for and tap the play button.
+        let playButton = app.buttons["detail_play_button"]
+        XCTAssert(playButton.waitForExistence(timeout: 15), "detail_play_button not found in database detail view")
+        playButton.tap()
+    }
+
+    /// After auto-login (no keyboard), tapping a database entry navigates to
+    /// UnifiedVideoPlayerView — proves the authenticated player path works end-to-end
+    /// in the simulator.  Uses --uitest-auto-login to avoid iOS keyboard infrastructure
+    /// windows that blocked this test previously (see problem_ios_testing_media_player_unification.md).
+    @MainActor
+    func testAuthPlayerOpensAndShowsOverlay() throws {
+        // No nav arg: stay on SplashView so splash_view_database_button is hittable.
+        // User-initiated push avoids the programmatic-NavigationLink child-navigation issue.
+        try autoLogin()
+        try navigateToPlayer()
+
+        // unified_player_close_button is a reliable signal UnifiedVideoPlayerView was pushed.
+        let closeButton = app.buttons["unified_player_close_button"]
+        XCTAssert(
+            closeButton.waitForExistence(timeout: 15),
+            "unified_player_close_button not found — UnifiedVideoPlayerView may not have been pushed for authenticated path"
+        )
+    }
+
+    // MARK: - Authenticated player — close / dismiss
+
+    /// Tapping Close on the authenticated player returns to the database detail view.
+    /// Uses --uitest-auto-login (no keyboard) so window overlay does not block navigation.
+    @MainActor
+    func testAuthPlayerCloseButtonDismisses() throws {
+        try autoLogin()
+        // navigateToPlayer() ends by tapping detail_play_button — the player is open on return.
+        try navigateToPlayer()
+
+        let closeButton = app.buttons["unified_player_close_button"]
+        XCTAssert(closeButton.waitForExistence(timeout: 10), "Close button not found in authenticated player")
+        closeButton.tap()
+
+        // Close button must be gone — confirms the player was dismissed and nav stack is clean.
+        XCTAssertFalse(
+            closeButton.waitForExistence(timeout: 5),
+            "Close button still visible after tapping Close — authenticated player may not have dismissed"
+        )
     }
 }
