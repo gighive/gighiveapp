@@ -186,6 +186,10 @@ struct UnifiedVideoPlayerView: View {
             }
         }
         .onDisappear {
+            // Called on both back-navigation and the Close button path.
+            // cleanup() is idempotent: all observers/tokens are nilled after the
+            // first call, so a second call from close() → dismiss() is a no-op.
+            cleanup()
             if isVideo {
                 resetNavigationBarAppearance()
             }
