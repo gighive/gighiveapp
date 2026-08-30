@@ -90,6 +90,11 @@ struct UnifiedVideo: Identifiable {
     let fileType: MediaFileType
     /// true when this entry belongs to the current user (guest: nonce match; authenticated: Phase 4)
     let isOwnUpload: Bool
+    /// Server-authoritative delete eligibility flag from the authenticated list endpoint.
+    /// true when the authenticated caller may delete this entry (Phase 5 refactor).
+    /// Always false for the guest path — guest delete uses nonce-based authorization.
+    /// Drive delete-button visibility via showDeleteButton(for:), not this field directly.
+    let canDelete: Bool
     /// true when this entry has been flagged/reported by the current user
     let isReported: Bool
     /// Recording date string — authenticated: MediaEntry.date (e.g. "2005-03-03"); guest: nil

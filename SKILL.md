@@ -453,7 +453,7 @@ drafted, always perform the following checks before presenting it as final:
 - Preferred outline:
   - YAML frontmatter `description`
   - `# Problem: <name>`
-  - `## Executive Summary` — **required**; placed immediately before `## Summary`; four lines maximum; plain non-technical language explaining what breaks, who is affected, and why it matters — as if speaking to a non-technical stakeholder in 30 seconds. No jargon, no stack traces, no code references. End with the fix characterised in one phrase (e.g. "The fix is one line of PHP").
+  - `## Business Summary` — **required**; placed immediately after the title, before all other sections; three sentences maximum; plain non-technical language describing what is broken, who is affected, and what the fix is — as if explaining to a non-technical stakeholder in 30 seconds. No jargon, no stack traces, no code references. State the symptom the user sees, the underlying cause in one phrase, and the fix in one phrase (e.g. "The server was not returning a security token after upload. The upload system was updated to a new file-transfer method but the token step was not carried over. Two targeted server changes restore the token and fix the response format.").
   - `## Summary`
   - `## Impact`
   - `## Symptoms`

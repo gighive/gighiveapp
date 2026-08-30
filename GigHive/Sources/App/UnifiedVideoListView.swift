@@ -34,11 +34,7 @@ struct UnifiedVideoListView: View {
     @State private var reportedIds: Set<Int> = []
     @State private var deletedIds: Set<Int> = []
 
-    // MARK: Authenticated delete state (Phase 4)
-
-    /// Maps fileId → deleteToken for videos uploaded from this device.
-    /// Populated in loadAuthenticatedVideos; used by performDelete for the authenticated path.
-    @State private var authDeleteTokens: [Int: String] = [:]
+    // MARK: Authenticated delete state (Phase 5)
 
     /// Tracks in-flight authenticated deletes to prevent double-tap sending two API calls.
     @State private var isDeletingIds: Set<Int> = []
@@ -488,10 +484,12 @@ struct UnifiedVideoListView: View {
         switch capabilities.deleteScope {
         case .none:          return false
         case .uploaderOnly:  return ownUploadIds.contains(video.id)
-        // Check live token map rather than the snapshot value on UnifiedVideo so the button
-        // disappears immediately when the 403 handler removes the token from authDeleteTokens,
-        // without requiring a full list reload.
-        case .uploaderAndAdmin: return authDeleteTokens[video.id] != nil
+        case .uploaderAndAdmin:
+            // Admin: server-authoritative can_delete flag drives visibility (Phase 5 refactor).
+            // Uploader: delete path deferred to JWT migration (Phase 3 Step 7); always hidden.
+            guard case .authenticated(_, let credential, _) = context,
+                  credential?.displayUser == "admin" else { return false }
+            return video.canDelete
         }
     }
 
@@ -576,6 +574,7 @@ struct UnifiedVideoListView: View {
                     thumbnailURL: buildGuestThumbnailURL(video: video, baseURL: baseURL),
                     fileType: .video,
                     isOwnUpload: ownUploadIds.contains(video.uploadJobId),
+                    canDelete: false,       // guest delete uses nonce-based authorization, not can_delete
                     isReported: reportedIds.contains(video.uploadJobId),
                     date: nil,
                     duration: nil
@@ -624,14 +623,6 @@ struct UnifiedVideoListView: View {
                 baseURL: baseURL, credential: credential, allowInsecure: allowInsecureTLS
             )
             let entries = try await client.fetchMediaList()
-            let host = baseURL.host ?? baseURL.absoluteString
-            let storedTokens = (try? UploaderDeleteTokenStore.load(host: host)) ?? []
-            let tokenMap = Dictionary(
-                storedTokens.map { ($0.fileId, $0.deleteToken) },
-                uniquingKeysWith: { first, _ in first }
-            )
-            authDeleteTokens = tokenMap
-            logWithTimestamp("[UnifiedList] loaded \(tokenMap.count) delete token(s) for host=\(host)")
             let mapped: [UnifiedVideo] = entries.compactMap { entry in
                 guard let streamURL = URL(string: entry.url, relativeTo: baseURL)?.absoluteURL else {
                     logWithTimestamp("[UnifiedList] auth: skipping id=\(entry.id) — could not resolve streamURL from url=\(entry.url)")
@@ -649,7 +640,8 @@ struct UnifiedVideoListView: View {
                     streamURL: streamURL,
                     thumbnailURL: buildAuthThumbnailURL(entry: entry, baseURL: baseURL),
                     fileType: fileType,
-                    isOwnUpload: tokenMap[entry.id] != nil,
+                    isOwnUpload: entry.canDelete,   // proxy for ownership until JWT migration
+                    canDelete: entry.canDelete,
                     isReported: false,      // Flag/report not supported for authenticated context
                     date: entry.date,
                     duration: entry.duration
@@ -657,7 +649,7 @@ struct UnifiedVideoListView: View {
             }
             videos = mapped
             hasLoadedOnce = true
-            logWithTimestamp("[UnifiedList] auth load: entries=\(entries.count) mapped=\(mapped.count) ownUploads=\(tokenMap.count)")
+            logWithTimestamp("[UnifiedList] auth load: entries=\(entries.count) mapped=\(mapped.count) canDelete=\(mapped.filter { $0.canDelete }.count)")
         } catch {
             errorMessage = error.localizedDescription
             logWithTimestamp("[UnifiedList] auth load error: \(error.localizedDescription)")
@@ -799,8 +791,11 @@ struct UnifiedVideoListView: View {
                 activeAlert = .error(error.localizedDescription)
             }
         case .authenticated(let baseURL, let credential, let allowInsecureTLS):
-            guard let token = authDeleteTokens[video.id], !token.isEmpty else {
-                activeAlert = .error("Delete token not found for this video.")
+            // Only admin can reach this point — showDeleteButton returns false for uploader.
+            // Uploader delete via JWT role-claim is deferred to Phase 3 Step 7 (JWT migration).
+            guard credential?.displayUser == "admin" else {
+                logWithTimestamp("[UnifiedList] deleteAuthenticated: uploader delete not yet implemented (Phase 3 Step 7 deferred)")
+                activeAlert = .error("Delete is not yet available for this account type.")
                 return
             }
             // Prevent double-tap: ignore if a delete is already in flight for this video.
@@ -813,32 +808,18 @@ struct UnifiedVideoListView: View {
                 let client = DatabaseAPIClient(
                     baseURL: baseURL, credential: credential, allowInsecure: allowInsecureTLS
                 )
-                // Admin sends {"asset_ids": [id]} — no token validation on the server.
-                // Uploader sends {"asset_id": id, "delete_token": token} — server validates hash.
-                let resp: DatabaseAPIClient.DeleteMediaResponse
-                if credential?.displayUser == "admin" {
-                    logWithTimestamp("[UnifiedList] deleteAuthenticated using admin path file_id=\(video.id)")
-                    resp = try await client.deleteMediaFileAsAdmin(fileId: video.id)
-                } else {
-                    resp = try await client.deleteMediaFile(fileId: video.id, deleteToken: token)
-                }
+                // Admin path: sends {"asset_ids": [id]} — server does not require a delete token.
+                let resp = try await client.deleteMediaFileAsAdmin(fileId: video.id)
                 logWithTimestamp("[UnifiedList] deleteAuthenticated response deleted=\(resp.deletedCount) errors=\(resp.errorCount)")
                 if resp.deletedCount == 1 {
                     deletedIds.insert(video.id)
-                    authDeleteTokens.removeValue(forKey: video.id)
-                    // Remove from Keychain so the entry doesn't reappear in UploadView on next launch.
-                    try? UploaderDeleteTokenStore.remove(host: host, fileId: video.id)
                     activeAlert = .deleteFeedback("Your video has been removed from the database.")
                 } else {
                     activeAlert = .error("Server did not delete the file (deleted=\(resp.deletedCount), errors=\(resp.errorCount)).")
                 }
             } catch DatabaseError.httpError(403) {
-                logWithTimestamp("[UnifiedList] deleteAuthenticated 403 — removing stale token file_id=\(video.id)")
-                activeAlert = .error("You are not authorised to delete this video. Your delete token may have expired.")
-                authDeleteTokens.removeValue(forKey: video.id)
-                // Also remove from Keychain: stale token would otherwise reappear on next launch,
-                // show the delete button again, and produce another 403.
-                try? UploaderDeleteTokenStore.remove(host: host, fileId: video.id)
+                logWithTimestamp("[UnifiedList] deleteAuthenticated 403 file_id=\(video.id)")
+                activeAlert = .error("You are not authorised to delete this video.")
             } catch {
                 logWithTimestamp("[UnifiedList] deleteAuthenticated error: \(error)")
                 activeAlert = .error(error.localizedDescription)

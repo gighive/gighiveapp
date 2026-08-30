@@ -6,6 +6,8 @@ build/
 
 # macOS
 .DS_Store
+skipthisfileforgit.txt
+
 
 # ignore ansible infrastructure code directory
 gighiveinfra/

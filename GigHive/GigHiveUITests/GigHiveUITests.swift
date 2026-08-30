@@ -751,53 +751,50 @@ final class GigHiveUITests: XCTestCase {
         return creds
     }
 
-    /// No delete button appears when UploaderDeleteTokenStore has no entry for this host.
-    /// Verifies showDeleteButton(.uploaderAndAdmin) checks the live authDeleteTokens map.
+    /// ⚠️ SUPERSEDED BY PHASE 5 (refactor_video_player_page_delete_eligibility.md Phase 3).
+    /// Delete button visibility is now driven by the server's `can_delete` field, not by
+    /// Keychain token presence. For admin callers, `can_delete` is always true, so the admin
+    /// account sees delete buttons regardless of token store state. This test would now FAIL
+    /// if run as admin (the expected absence becomes presence). Replaced by
+    /// testDelEligAdminSeesDeleteButton (Phase 5 test 30) for admin-has-buttons and
+    /// testDelEligUploaderNoDeleteButtonForGuestUpload (Phase 5 test 29) for uploader-no-buttons.
     ///
-    /// Cell-load precondition: launchAuthListWithToken waits for unified_list_video_cell
-    /// before returning, so absence cannot be a vacuous pass from a failed list load.
+    /// Original intent: no delete button appears when UploaderDeleteTokenStore has no entry.
     @MainActor
     func testAuthDeleteButtonAbsentWithoutToken() throws {
-        try launchAuthListWithToken(injectToken: false)
-
-        XCTAssertFalse(
-            app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
-                .waitForExistence(timeout: 3),
-            "unified_list_delete_button must not appear when no delete token is held in Keychain"
+        throw XCTSkip(
+            "Superseded by Phase 5: delete button visibility is now driven by server can_delete, " +
+            "not Keychain token presence. Use testDelEligAdminSeesDeleteButton (admin) or " +
+            "testDelEligUploaderNoDeleteButtonForGuestUpload (uploader) instead."
         )
     }
 
-    /// Delete button appears after a synthetic token is injected for GH_TEST_DELETE_FILE_ID.
-    /// Requires GH_TEST_DELETE_FILE_ID in the test scheme (stable value: 2).
+    /// ⚠️ SUPERSEDED BY PHASE 5 (refactor_video_player_page_delete_eligibility.md Phase 3).
+    /// Token injection via --uitest-inject-delete-token no longer controls delete button
+    /// visibility after Phase 3. Replaced by testDelEligAdminSeesDeleteButton (Phase 5 test 30).
+    ///
+    /// Original intent: delete button appears after a synthetic token is injected.
     @MainActor
     func testAuthDeleteButtonVisibleForOwnUpload() throws {
-        let env = ProcessInfo.processInfo.environment
-        guard env["GH_TEST_DELETE_FILE_ID"] != nil else {
-            throw XCTSkip("Set GH_TEST_DELETE_FILE_ID in the test scheme to run this test.")
-        }
-
-        try launchAuthListWithToken(injectToken: true)
-
-        // Scroll down if the target card is not yet in the accessibility tree.
-        let deleteButton = app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
-        if !deleteButton.waitForExistence(timeout: 5) { app.swipeUp() }
-        XCTAssert(
-            deleteButton.waitForExistence(timeout: 5),
-            "unified_list_delete_button not found — token injection may have failed or asset_id " +
-            "\(env["GH_TEST_DELETE_FILE_ID"] ?? "?") is not in the visible list"
+        throw XCTSkip(
+            "Superseded by Phase 5: token injection no longer drives ✕ visibility. " +
+            "Use testDelEligAdminSeesDeleteButton instead."
         )
     }
 
     /// Tapping the delete button shows the specific "Delete your video?" confirmation alert.
     /// Cancels without confirming — no server write occurs.
+    ///
+    /// Phase 3 update: token injection is removed (it no longer drives button visibility).
+    /// The admin credential receives can_delete: true for all entries from the server, so at
+    /// least one delete button is visible without injection. GH_TEST_DELETE_FILE_ID still
+    /// required to target the specific card that is most likely to be visible first.
     @MainActor
     func testAuthDeleteConfirmDialogAppears() throws {
-        let env = ProcessInfo.processInfo.environment
-        guard env["GH_TEST_DELETE_FILE_ID"] != nil else {
-            throw XCTSkip("Set GH_TEST_DELETE_FILE_ID in the test scheme to run this test.")
-        }
+        try requireCredentials()
 
-        try launchAuthListWithToken(injectToken: true)
+        // Do not inject token — Phase 5: visibility is server-driven, not token-driven.
+        try launchAuthListWithToken(injectToken: false)
 
         let deleteButton = app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
         if !deleteButton.waitForExistence(timeout: 5) { app.swipeUp() }
@@ -819,55 +816,21 @@ final class GigHiveUITests: XCTestCase {
         )
     }
 
-    /// Confirming delete with an invalid synthetic token produces 403 from the server,
-    /// clears the Keychain entry, and causes the delete button to be absent on relaunch.
+    /// ⚠️ SUPERSEDED BY PHASE 5 (refactor_video_player_page_delete_eligibility.md Phase 3).
+    /// After Phase 3: uploader's showDeleteButton always returns false (can_delete: false
+    /// for all guest-uploaded assets), so the uploader never reaches a delete button and
+    /// cannot trigger a 403. The 403 handler no longer clears UploaderDeleteTokenStore.
+    /// Replaced by Phase 5 test 29 (testDelEligUploaderNoDeleteButtonForGuestUpload) which
+    /// directly asserts the uploader sees no delete buttons at all.
     ///
-    /// Preconditions:
-    ///   - GH_TEST_DELETE_FILE_ID must be set (stable value: 2).
-    ///   - GH_TEST_UPLOADER_USER / GH_TEST_UPLOADER_PASS must be set — the uploader HTTP
-    ///     auth user is required because delete_media_files.php only performs the token hash
-    ///     check on the uploader path. The admin path expects asset_ids[] (array payload),
-    ///     receives 400 for the app's scalar asset_id request, and skips Keychain cleanup.
-    ///   - Dev server must be reachable. A connection error also shows an alert but skips
-    ///     Keychain cleanup. Distinguish: "[UnifiedList] deleteAuthenticated 403" vs "error".
+    /// Original intent: confirmed delete with an invalid synthetic token produces 403 from
+    /// the server, clears the Keychain entry, and button absent on relaunch.
     @MainActor
     func testAuthDelete403ClearsToken() throws {
-        let env = ProcessInfo.processInfo.environment
-        guard env["GH_TEST_DELETE_FILE_ID"] != nil else {
-            throw XCTSkip("Set GH_TEST_DELETE_FILE_ID in the test scheme to run this test.")
-        }
-        // Missing GH_TEST_UPLOADER_USER / GH_TEST_UPLOADER_PASS → auto-skip via
-        // requireUploaderCredentials inside launchAuthListWithToken(useUploader: true).
-
-        try launchAuthListWithToken(injectToken: true, useUploader: true)
-
-        let deleteButton = app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
-        if !deleteButton.waitForExistence(timeout: 5) { app.swipeUp() }
-        XCTAssert(deleteButton.waitForExistence(timeout: 5), "Delete button not found")
-        deleteButton.tap()
-
-        let confirmAlert = app.alerts["Delete your video?"]
-        XCTAssert(confirmAlert.waitForExistence(timeout: 10), "Confirm alert did not appear")
-        confirmAlert.buttons["Delete"].tap()
-
-        // Server returns 403 (invalid token). Budget 25 s for the network round-trip.
-        // Timeout here most likely means the server is unreachable rather than a 403.
-        // Check console for "[UnifiedList] deleteAuthenticated 403" vs "deleteAuthenticated error".
-        let errorAlert = app.alerts.firstMatch
-        XCTAssert(
-            errorAlert.waitForExistence(timeout: 25),
-            "Error alert did not appear within 25 s — server may be unreachable or returned non-403"
-        )
-        errorAlert.buttons.firstMatch.tap()  // dismiss
-
-        // Relaunch without injection (still as uploader). P9 runs; 403 handler already cleared Keychain.
-        try launchAuthListWithToken(injectToken: false, useUploader: true)
-
-        XCTAssertFalse(
-            app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
-                .waitForExistence(timeout: 3),
-            "unified_list_delete_button still visible after 403 — " +
-            "UploaderDeleteTokenStore.remove may not have fired in the 403 handler"
+        throw XCTSkip(
+            "Superseded by Phase 5: uploader no longer sees delete buttons (can_delete: false), " +
+            "so the 403 path cannot be triggered from the list UI. " +
+            "See testDelEligUploaderNoDeleteButtonForGuestUpload."
         )
     }
 
@@ -914,4 +877,65 @@ final class GigHiveUITests: XCTestCase {
             "A search bar (from .searchable modifier) must not appear in guest context"
         )
     }
+
+    // MARK: - Phase 5 — Server-Authoritative Delete Eligibility
+
+    /// Test 29: Uploader signing in to the unified list must see no ✕ delete button on any
+    /// cell when all entries on the test server are guest-uploaded assets (server returns
+    /// can_delete: false for all).
+    ///
+    /// Fixture precondition: the test dev server must contain only guest-uploaded assets for
+    /// the uploader account. If any authenticated (iPhone-uploaded) asset exists, the server
+    /// returns can_delete: true for it, a ✕ button appears, and this test fails by design.
+    /// See docs/refactor_video_player_page_delete_eligibility.md §Phase 3 test preconditions.
+    ///
+    /// Requires: GH_TEST_HOST, GH_TEST_UPLOADER_USER, GH_TEST_UPLOADER_PASS
+    /// Server prerequisite: Phase 2 of the refactor deployed to the dev server.
+    @MainActor
+    func testDelEligUploaderNoDeleteButtonForGuestUpload() throws {
+        // requireUploaderCredentials throws XCTSkip when credentials are absent.
+        try launchAuthListWithToken(injectToken: false, useUploader: true)
+
+        // List loaded (launchAuthListWithToken already waited for unified_list_video_cell).
+        // Uploader must not see any delete button: showDeleteButton returns false for uploader
+        // regardless of can_delete (Phase 3 Step 4 — uploader delete deferred to JWT migration).
+        XCTAssertFalse(
+            app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
+                .waitForExistence(timeout: 3),
+            "unified_list_delete_button must not appear for uploader caller — " +
+            "server-authoritative can_delete: false for guest-uploaded assets, and " +
+            "showDeleteButton always returns false for the uploader role (Phase 3)"
+        )
+    }
+
+    /// Test 30: Admin signing in to the unified list must see at least one ✕ delete button.
+    /// The server returns can_delete: true for admin on all listed entries.
+    ///
+    /// Requires: GH_TEST_HOST, GH_TEST_USER (admin), GH_TEST_PASS
+    /// Server prerequisite: Phase 2 of the refactor deployed to the dev server and at least
+    /// one entry in the database.
+    @MainActor
+    func testDelEligAdminSeesDeleteButton() throws {
+        // requireCredentials (admin) throws XCTSkip when credentials are absent.
+        try launchAuthListWithToken(injectToken: false)
+
+        // List loaded (launchAuthListWithToken already waited for unified_list_video_cell).
+        // Admin must see at least one delete button: server returns can_delete: true for all
+        // entries and showDeleteButton returns video.canDelete for admin (Phase 3 Step 4).
+        let deleteButton = app.buttons.matching(identifier: "unified_list_delete_button").firstMatch
+        if !deleteButton.waitForExistence(timeout: 5) { app.swipeUp() }
+        XCTAssert(
+            deleteButton.waitForExistence(timeout: 5),
+            "unified_list_delete_button not found for admin caller — " +
+            "server should return can_delete: true for admin on all entries. " +
+            "Verify Phase 2 is deployed and the database has at least one entry."
+        )
+    }
+
+    // MARK: - Phase 5 — Unit Tests (GigHiveTests target)
+    // Tests 31 and 32 (testDelEligMissingCanDeleteDecodesAsFalse and
+    // testDelEligGuestUploadDoesNotWriteTokenStore) are pure unit tests that require
+    // @testable import GigHive. They belong in a GigHiveTests unit-test target
+    // (XCTest, not XCUITest). The GigHiveTests target does not yet exist in project.yml.
+    // Add the target via XcodeGen and re-generate the Xcode project before implementing.
 }

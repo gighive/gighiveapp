@@ -1,5 +1,25 @@
 ***
 releaseNotes20260830.txt
+Changes: delete_eligibility
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   .gitignore
+	modified:   CHANGELOG.txt
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHive.xcscheme
+	modified:   GigHive/GigHiveUITests/GigHiveUITests.swift
+	modified:   GigHive/Sources/App/DatabaseModels.swift
+	modified:   GigHive/Sources/App/UnifiedVideoListView.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	modified:   GigHive/Sources/App/VideoListContext.swift
+	modified:   SKILL.md
+
+***
+releaseNotes20260830.txt
 Changes: Database / gallery merge
 
 macbook2025:gighiveapp sodo$ git status

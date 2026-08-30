@@ -1119,53 +1119,9 @@ struct UploadView: View {
                         let resp = try JSONDecoder().decode(FinalizeResponse.self, from: data)
                         decodeAndPersist(resp)
                     } catch {
-                        logWithTimestamp("[UploadView] Finalize direct JSON decode failed; attempting extraction")
-
-                        let decodeCandidate: (String) -> FinalizeResponse? = { candidate in
-                            let trimmedCandidate: String = {
-                                if let start = candidate.firstIndex(of: "{"), let end = candidate.lastIndex(of: "}"), start <= end {
-                                    return String(candidate[start...end])
-                                }
-                                return candidate
-                            }()
-
-                            let htmlDecoded: String = {
-                                // Some environments return JSON HTML-escaped inside <pre>.
-                                guard trimmedCandidate.contains("&") else { return trimmedCandidate }
-                                if let data = trimmedCandidate.data(using: .utf8) {
-                                    let opts: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-                                        .documentType: NSAttributedString.DocumentType.html,
-                                        .characterEncoding: String.Encoding.utf8.rawValue
-                                    ]
-                                    if let attributed = try? NSAttributedString(data: data, options: opts, documentAttributes: nil) {
-                                        return attributed.string
-                                    }
-                                }
-                                return trimmedCandidate
-                            }()
-
-                            let finalText = htmlDecoded.trimmingCharacters(in: .whitespacesAndNewlines)
-                            let prefix = String(finalText.prefix(200))
-                            logWithTimestamp("[UploadView] Finalize extracted candidate len=\(finalText.count); prefix=\(prefix)")
-
-                            guard let jsonData = finalText.data(using: .utf8) else { return nil }
-                            do {
-                                return try JSONDecoder().decode(FinalizeResponse.self, from: jsonData)
-                            } catch {
-                                logWithTimestamp("[UploadView] Finalize candidate decode error: \(error)")
-                                return nil
-                            }
-                        }
-
-                        if let candidate = extractJSONCandidate(bodyText), let resp = decodeCandidate(candidate) {
-                            debugLog.append("finalize JSON decode succeeded after extraction")
-                            decodeAndPersist(resp)
-                        } else {
-                            let snippet = String(bodyText.prefix(240))
-                            debugLog.append("finalize JSON decode failed; body prefix=\(snippet)")
-                            logWithTimestamp("[UploadView] Finalize JSON extraction/decode failed; body prefix=\(snippet)")
-                            logWithTimestamp("[UploadView] Finalize direct decode error: \(error)")
-                        }
+                        let snippet = String(bodyText.prefix(240))
+                        debugLog.append("finalize JSON decode failed; body prefix=\(snippet)")
+                        logWithTimestamp("[UploadView] Finalize JSON decode failed: \(error); body prefix=\(snippet)")
                     }
 
                     // Prepend success message to debug log

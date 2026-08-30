@@ -49,12 +49,27 @@
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "GH_TEST_PASS"
-            value = "Sn012Trust@!"
+            value = "FILL_IN"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
             key = "GH_TEST_GUEST_NONCE"
-            value = "fa_cRRhVdH6cKjmdE_-Aku3jOrJF9FB0"
+            value = "FILL_IN"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GH_TEST_INSECURE"
+            value = "1"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GH_TEST_UPLOADER_USER"
+            value = "uploader"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GH_TEST_UPLOADER_PASS"
+            value = "FILL_IN"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>
