@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1430"
+   LastUpgradeVersion = "2620"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -39,7 +39,7 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "GH_TEST_HOST"
-            value = "devvm.gighive.internal"
+            value = "dev.gighive.app"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
@@ -50,6 +50,11 @@
          <EnvironmentVariable
             key = "GH_TEST_PASS"
             value = "Sn012Trust@!"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "GH_TEST_GUEST_NONCE"
+            value = "fa_cRRhVdH6cKjmdE_-Aku3jOrJF9FB0"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

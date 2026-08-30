@@ -1,4 +1,33 @@
 ***
+releaseNotes20260830.txt
+Changes: Database / gallery merge
+
+macbook2025:gighiveapp sodo$ git status
+On branch master
+Your branch is ahead of 'origin/master' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   GigHive/GigHive.xcodeproj/project.pbxproj
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHive.xcscheme
+	modified:   GigHive/GigHive.xcodeproj/xcshareddata/xcschemes/GigHiveShare.xcscheme
+	modified:   GigHive/GigHiveUITests/GigHiveUITests.swift
+	modified:   GigHive/Sources/App/DatabaseAPIClient.swift
+	deleted:    GigHive/Sources/App/DatabaseDetailView.swift
+	modified:   GigHive/Sources/App/DatabaseModels.swift
+	deleted:    GigHive/Sources/App/DatabaseView.swift
+	deleted:    GigHive/Sources/App/GuestGalleryView.swift
+	modified:   GigHive/Sources/App/GuestUploadView.swift
+	deleted:    GigHive/Sources/App/MediaPlayerView.swift
+	modified:   GigHive/Sources/App/SplashView.swift
+	modified:   GigHive/Sources/App/ThumbnailLoader.swift
+	new file:   GigHive/Sources/App/UnifiedVideoListView.swift
+	modified:   GigHive/Sources/App/UploadView.swift
+	modified:   GigHive/Sources/App/VideoListContext.swift
+	modified:   SKILL.md
+
+***
 releaseNotes20260826.txt
 Changes: Mobile app testing functionality
 

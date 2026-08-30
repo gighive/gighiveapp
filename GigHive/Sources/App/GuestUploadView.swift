@@ -99,7 +99,7 @@ struct GuestUploadView: View {
                             viewedUploadJobIds: [],
                             daysRemaining: nil
                         )
-                        NavigationLink(destination: GuestGalleryView(record: viewerRecord)) {
+                        NavigationLink(destination: UnifiedVideoListView(context: .guest(record: viewerRecord))) {
                             GHCard(pad: 12) {
                                 HStack(spacing: 8) {
                                     Image("beelogo")
@@ -519,21 +519,13 @@ struct GuestUploadView: View {
             }()
             logWithTimestamp("[GuestUpload] Finalize decoded: resp=\(resp != nil), statusNonce=\(resp?.statusNonce ?? "nil"), uploadJobId=\(resp?.uploadJobId.map { String($0) } ?? "nil")")
             if let resp = resp {
-                let token = resp.deleteToken?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                if !token.isEmpty, !host.isEmpty {
-                    let entry = UploadedFileTokenEntry(
-                        fileId: resp.id,
-                        deleteToken: token,
-                        createdAt: Date(),
-                        eventDate: resp.eventDate ?? "",
-                        orgName: resp.orgName ?? "",
-                        eventType: resp.eventType ?? "",
-                        label: resp.label,
-                        fileName: resp.fileName,
-                        fileType: resp.fileType
-                    )
-                    try? UploaderDeleteTokenStore.upsert(host: host, entry: entry)
-                }
+                // delete_token from the server is intentionally not stored here.
+                // The guest delete flow uses GuestUploadRecord.statusNonce (nonce-based),
+                // not UploaderDeleteTokenStore. Storing it there caused the authenticated
+                // Media Database to show a ✕ delete button for guest-uploaded files — a
+                // button that always 403s because the authenticated delete endpoint validates
+                // tokens against assets.delete_token_hash, which is set by the authenticated
+                // upload path only. See problem_ios_testing_media_player_unification.md P15.
                 if let nonce = resp.statusNonce, let jobId = resp.uploadJobId {
                     let eventName = guestSession.eventDetails
                         .map { "\($0.orgName) — \($0.eventDate)" } ?? "Event"

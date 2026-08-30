@@ -73,7 +73,11 @@ struct SplashView: View {
                 .accessibilityIdentifier("splash_login_button")
 
                 if session.credential != nil {
-                    NavigationLink(destination: DatabaseView()) {
+                    NavigationLink(destination: UnifiedVideoListView(context: .authenticated(
+                        baseURL: session.baseURL ?? URL(string: "https://example.com")!,
+                        credential: session.credential,
+                        allowInsecureTLS: session.allowInsecureTLS
+                    ))) {
                         Text("View the Database")
                     }
                     .simultaneousGesture(TapGesture().onEnded {
@@ -179,7 +183,7 @@ struct SplashView: View {
                             $0.baseURLString + "|" + $0.eventName == eventKey &&
                             newVideoNonces.contains($0.statusNonce)
                         }
-                        NavigationLink(destination: GuestGalleryView(record: record)) {
+                        NavigationLink(destination: UnifiedVideoListView(context: .guest(record: record))) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(record.eventName)
@@ -230,23 +234,42 @@ struct SplashView: View {
                 .hidden()
             NavigationLink(
                 destination: Group {
-                    if let rec = bannerRecord { GuestGalleryView(record: rec) } else { EmptyView() }
+                    if let rec = bannerRecord { UnifiedVideoListView(context: .guest(record: rec)) } else { EmptyView() }
                 },
                 isActive: $goToBannerGallery) { EmptyView() }
                 .frame(width: 0, height: 0)
                 .hidden()
             // goToDatabase: used by --uitest-navigate-database to bypass the NavigationLink tap
-            NavigationLink(destination: DatabaseView(), isActive: $goToDatabase) { EmptyView() }
+            NavigationLink(destination: UnifiedVideoListView(context: .authenticated(
+                baseURL: session.baseURL ?? URL(string: "https://example.com")!,
+                credential: session.credential,
+                allowInsecureTLS: session.allowInsecureTLS
+            )), isActive: $goToDatabase) { EmptyView() }
                 .frame(width: 0, height: 0)
                 .hidden()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding()
             .ghFullScreenBackground(GHTheme.bg)
-            .onAppear { 
+            .onAppear {
                 // Restore session from Keychain on cold launch if not already logged in.
                 // Skipped under UI tests so each test starts from a clean logged-out state.
                 let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+                // UI-test cleanup: clear any GuestUploadRecords left in UserDefaults from
+                // prior tests running on the same simulator clone.  Tests that need guest
+                // records must request injection explicitly via --uitest-inject-guest-nonce.
+                // Without this, non-injection tests find leftover records and enter isGuestOnly
+                // mode, hiding splash_login_button and breaking all login-related tests.
+                if isUITesting { GuestUploadRecord.save([]) }
+                // P9 isolation: clear any delete tokens left by prior tests on this simulator
+                // clone before injecting a fresh entry. Guard on host presence because some
+                // tests launch without GH_TEST_HOST and calling clear(host: "") is unsafe.
+                if isUITesting {
+                    let envForClear = ProcessInfo.processInfo.environment
+                    if let host = envForClear["GH_TEST_HOST"] {
+                        try? UploaderDeleteTokenStore.clear(host: host)
+                    }
+                }
                 if !isUITesting,
                    session.credential == nil,
                    let lastHost = UserDefaults.standard.string(forKey: "gh_last_host"),
@@ -257,6 +280,43 @@ struct SplashView: View {
                         session.baseURL = baseURL
                         session.credential = credential
                         logWithTimestamp("[Splash] Restored session from Keychain for host=\(lastHost)")
+                    }
+                }
+                // UI-test guest record injection: seed a GuestUploadRecord into UserDefaults
+                // so the "Your Event Galleries" row appears on splash in fresh simulator clones
+                // (xcodebuild creates clones with empty UserDefaults).
+                // Requires --uitest-inject-guest-nonce + GH_TEST_GUEST_NONCE + GH_TEST_HOST.
+                // uploadJobId defaults to 1; override with GH_TEST_GUEST_JOB_ID if needed.
+                if isUITesting &&
+                   ProcessInfo.processInfo.arguments.contains("--uitest-inject-guest-nonce") {
+                    let env = ProcessInfo.processInfo.environment
+                    if let nonce = env["GH_TEST_GUEST_NONCE"], !nonce.isEmpty,
+                       let host  = env["GH_TEST_HOST"],  !host.isEmpty {
+                        let jobId   = Int(env["GH_TEST_GUEST_JOB_ID"] ?? "") ?? 1
+                        let baseURL = "https://\(host)"
+                        let synthetic = GuestUploadRecord(
+                            statusNonce:        nonce,
+                            uploadJobId:        jobId,
+                            eventName:          "Test Event",
+                            submittedAt:        Date(),
+                            baseURLString:      baseURL,
+                            approvalStatus:     "approved",
+                            lastSeenVideoCount: 1,
+                            viewedUploadJobIds: [],
+                            daysRemaining:      nil
+                        )
+                        GuestUploadRecord.upsert(synthetic)
+                        logWithTimestamp("[Splash] UI-test injected guest record: nonce=\(nonce.prefix(8))… host=\(host) jobId=\(jobId)")
+                        // Optionally auto-navigate directly into the guest list so tests
+                        // don't need to tap the gallery row on splash.  Mirrors the
+                        // --uitest-navigate-database pattern; 0.6 s delay lets the view
+                        // hierarchy settle before the NavigationLink fires.
+                        if ProcessInfo.processInfo.arguments.contains("--uitest-navigate-guest-list") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                bannerRecord    = synthetic
+                                goToBannerGallery = true
+                            }
+                        }
                     }
                 }
                 // UI-test auto-login: inject credentials from environment variables without
@@ -277,6 +337,32 @@ struct SplashView: View {
                         session.baseURL = baseURL
                         session.credential = .basic(user: user, pass: pass)
                         logWithTimestamp("[Splash] UI-test auto-login: user=\(user) host=\(host) insecureTLS=true")
+                    }
+                }
+                // UI-test delete-token injection: seeds one synthetic (invalid) delete token into
+                // the Keychain for GH_TEST_DELETE_FILE_ID so the delete button renders on that
+                // card. The token is deliberately invalid — a confirmed delete always returns 403.
+                // Requires --uitest-inject-delete-token + GH_TEST_HOST + GH_TEST_DELETE_FILE_ID.
+                // The P9 clear above runs first so this entry is always fresh.
+                if isUITesting &&
+                   ProcessInfo.processInfo.arguments.contains("--uitest-inject-delete-token") {
+                    let envInject = ProcessInfo.processInfo.environment
+                    if let host     = envInject["GH_TEST_HOST"], !host.isEmpty,
+                       let idStr    = envInject["GH_TEST_DELETE_FILE_ID"],
+                       let fileId   = Int(idStr), fileId > 0 {
+                        let entry = UploadedFileTokenEntry(
+                            fileId:    fileId,
+                            deleteToken: "uitest-invalid-token",
+                            createdAt: Date(),
+                            eventDate: "",
+                            orgName:   "UITest",
+                            eventType: "other",
+                            label:     nil,
+                            fileName:  nil,
+                            fileType:  "video"
+                        )
+                        try? UploaderDeleteTokenStore.upsert(host: host, entry: entry)
+                        logWithTimestamp("[Splash] UI-test injected delete token: fileId=\(fileId) host=\(host)")
                     }
                 }
                 logWithTimestamp("[Splash] appeared; loggedIn=\(session.credential != nil)")

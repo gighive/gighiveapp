@@ -9,10 +9,8 @@
 /* Begin PBXBuildFile section */
 		00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */; };
 		061762F60D8D7E5B045B2AD8 /* GuestUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE7953F33CD9B6FF861D588 /* GuestUploadView.swift */; };
-		076B6EFE3F8621F7B74A514D /* DatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E335CC3B564F898AC4688953 /* DatabaseView.swift */; };
 		0F716F6E25BB7BECF5E8E8D6 /* GuestGalleryAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 441548FCF816523B92FA3A14 /* GuestGalleryAPIClient.swift */; };
 		149FFB5F82036DA27CB0271B /* TUSKit in Frameworks */ = {isa = PBXBuildFile; productRef = C3C4B189A95EBE757284118F /* TUSKit */; };
-		21C3F352C8EE6B721E96171E /* MediaPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */; };
 		294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 839DE2678BD36275271EBF1E /* LoggingUtils.swift */; };
 		29990A45D239EBD1765249AA /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A489F209BDAB477FEC85E098 /* ShareViewController.swift */; };
 		2AD89F1312ACEBA7C6499D32 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3055290AEEA5443F286065A /* AppConstants.swift */; };
@@ -34,11 +32,9 @@
 		8B24B334498A327D62A446AB /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */; };
 		976BF94829F092409E37B53E /* ShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB29F566070702C9A630820E /* ShareHelper.swift */; };
 		9BD9817722A2718FB2D58253 /* UploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2782A5D354995ABF69E0D106 /* UploadClient.swift */; };
-		A57C7D6847964A08ECAD1D1F /* GuestGalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CB3B8456C212DEB94703CE /* GuestGalleryView.swift */; };
 		AA1234567890ABCDEF012345 /* AuthCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1234567890ABCDEF012345 /* AuthCredential.swift */; };
 		B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */; };
 		BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */; };
-		C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */; };
 		C674A6561A91CCCB666A71E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E2BD80677E697C313615AB9A /* Assets.xcassets */; };
 		CA12FA5CE81DDA9095DBAF22 /* UploadPayload+GuestUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = B37F58C5C78FC637B08F272D /* UploadPayload+GuestUpload.swift */; };
 		CE1EB811FCF125460F8EEC41 /* UploadStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3277F5DA4FFFDD911D801529 /* UploadStateStore.swift */; };
@@ -47,10 +43,11 @@
 		ED7A4DDCFBE42E7831BB0118 /* TUSUploadClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD335287DEE8683B12C7DD1 /* TUSUploadClient.swift */; };
 		F60FCD42EE8D260B67BA585A /* GuestUploadSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06508823FA767D58BEA3D2B5 /* GuestUploadSession.swift */; };
 		FA5E96B35E2ADCD8AD38030B /* FinalizeResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83875BADDD06D274A675799E /* FinalizeResponse.swift */; };
-		VC001A0000000000000000001 /* VideoListContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = VC002A0000000000000000001 /* VideoListContext.swift */; };
-		TL001A0000000000000000001 /* ThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = TL002A0000000000000000001 /* ThumbnailLoader.swift */; };
-		UV001A0000000000000000001 /* UnifiedVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */; };
 		FF1B8025255AE5963121111A /* UploaderDeleteTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CBE9129BDB286AF1ACC2064 /* UploaderDeleteTokenStore.swift */; };
+		TL001A0000000000000000001 /* ThumbnailLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = TL002A0000000000000000001 /* ThumbnailLoader.swift */; };
+		UL001A0000000000000000001 /* UnifiedVideoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = UL002A0000000000000000001 /* UnifiedVideoListView.swift */; };
+		UV001A0000000000000000001 /* UnifiedVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */; };
+		VC001A0000000000000000001 /* VideoListContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = VC002A0000000000000000001 /* VideoListContext.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,7 +78,6 @@
 		28D73AF329991A0BFBA872DB /* QRTokenAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRTokenAPIClient.swift; sourceTree = "<group>"; };
 		2D44EE2E62114B09DB912F0C /* GuestUploadRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestUploadRecord.swift; sourceTree = "<group>"; };
 		2FE7953F33CD9B6FF861D588 /* GuestUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestUploadView.swift; sourceTree = "<group>"; };
-		30CB3B8456C212DEB94703CE /* GuestGalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuestGalleryView.swift; sourceTree = "<group>"; };
 		3277F5DA4FFFDD911D801529 /* UploadStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadStateStore.swift; sourceTree = "<group>"; };
 		365A5A51360ACBC2E7C236ED /* FinalizeResponseHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalizeResponseHandler.swift; sourceTree = "<group>"; };
 		3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseAPIClient.swift; sourceTree = "<group>"; };
@@ -103,7 +99,6 @@
 		AE94FF1BF6D908B86A2108CC /* PresentationDetentsCompat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationDetentsCompat.swift; sourceTree = "<group>"; };
 		B37F58C5C78FC637B08F272D /* UploadPayload+GuestUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UploadPayload+GuestUpload.swift"; sourceTree = "<group>"; };
 		BB1234567890ABCDEF012345 /* AuthCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthCredential.swift; sourceTree = "<group>"; };
-		BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerView.swift; sourceTree = "<group>"; };
 		CAC179A7A6931DD8F49D36DA /* PickerBridges.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerBridges.swift; sourceTree = "<group>"; };
 		CB29F566070702C9A630820E /* ShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelper.swift; sourceTree = "<group>"; };
 		D10665C7A5AD48621FE5A6B8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
@@ -112,12 +107,11 @@
 		DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
 		DCB48CD79DA5D49B822B427D /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		E2BD80677E697C313615AB9A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		E335CC3B564F898AC4688953 /* DatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseView.swift; sourceTree = "<group>"; };
-		E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseDetailView.swift; sourceTree = "<group>"; };
 		FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipartInputStream.swift; sourceTree = "<group>"; };
-		VC002A0000000000000000001 /* VideoListContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoListContext.swift; sourceTree = "<group>"; };
 		TL002A0000000000000000001 /* ThumbnailLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailLoader.swift; sourceTree = "<group>"; };
+		UL002A0000000000000000001 /* UnifiedVideoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedVideoListView.swift; sourceTree = "<group>"; };
 		UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedVideoPlayerView.swift; sourceTree = "<group>"; };
+		VC002A0000000000000000001 /* VideoListContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoListContext.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -171,14 +165,11 @@
 				BB1234567890ABCDEF012345 /* AuthCredential.swift */,
 				DAD6C8E3E9BFFAA5BEF103E2 /* AuthSession.swift */,
 				3F9CF8715060B92B2DB6CE37 /* DatabaseAPIClient.swift */,
-				E7BC058ECF6167AE5BA229A4 /* DatabaseDetailView.swift */,
 				5C2EB7F2D108852520CA7085 /* DatabaseModels.swift */,
-				E335CC3B564F898AC4688953 /* DatabaseView.swift */,
 				83875BADDD06D274A675799E /* FinalizeResponse.swift */,
 				365A5A51360ACBC2E7C236ED /* FinalizeResponseHandler.swift */,
 				7A0FCB85B83FF6F1C6D5B07B /* GigHiveApp.swift */,
 				441548FCF816523B92FA3A14 /* GuestGalleryAPIClient.swift */,
-				30CB3B8456C212DEB94703CE /* GuestGalleryView.swift */,
 				2D44EE2E62114B09DB912F0C /* GuestUploadRecord.swift */,
 				06508823FA767D58BEA3D2B5 /* GuestUploadSession.swift */,
 				2FE7953F33CD9B6FF861D588 /* GuestUploadView.swift */,
@@ -186,7 +177,6 @@
 				4277A683C1B980C1C5B228C0 /* LaunchScreen.storyboard */,
 				839DE2678BD36275271EBF1E /* LoggingUtils.swift */,
 				0D7BFF9A60ECBDEB20D8D8D8 /* LoginView.swift */,
-				BB936663C4D85216947ACDC2 /* MediaPlayerView.swift */,
 				4A1E2D239BDF9110697BA03F /* MediaResourceLoader.swift */,
 				FB3749B35FD5BD871A4F60FA /* MultipartInputStream.swift */,
 				5A9BC7C10B6E0CD8A4204EDA /* NetworkProgressUploadClient.swift */,
@@ -207,6 +197,7 @@
 				VC002A0000000000000000001 /* VideoListContext.swift */,
 				TL002A0000000000000000001 /* ThumbnailLoader.swift */,
 				UV002A0000000000000000001 /* UnifiedVideoPlayerView.swift */,
+				UL002A0000000000000000001 /* UnifiedVideoListView.swift */,
 			);
 			name = App;
 			path = Sources/App;
@@ -295,7 +286,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					474F2977B888115D9AAE79C9 = {
 						ProvisioningStyle = Automatic;
@@ -361,21 +352,17 @@
 				AA1234567890ABCDEF012345 /* AuthCredential.swift in Sources */,
 				5B768C031C7ED840EFDCD34A /* AuthSession.swift in Sources */,
 				00C051439AFB7F39C3B52266 /* DatabaseAPIClient.swift in Sources */,
-				C5362D04C08EEC57624D28DD /* DatabaseDetailView.swift in Sources */,
 				3CF85F5B751987188D075143 /* DatabaseModels.swift in Sources */,
-				076B6EFE3F8621F7B74A514D /* DatabaseView.swift in Sources */,
 				FA5E96B35E2ADCD8AD38030B /* FinalizeResponse.swift in Sources */,
 				6E378F8EA60791718B7AA9F0 /* FinalizeResponseHandler.swift in Sources */,
 				BECFC6AA8F6FE8DAB3DD8192 /* GigHiveApp.swift in Sources */,
 				0F716F6E25BB7BECF5E8E8D6 /* GuestGalleryAPIClient.swift in Sources */,
-				A57C7D6847964A08ECAD1D1F /* GuestGalleryView.swift in Sources */,
 				756DFE1BEB25B412BFA4ADBF /* GuestUploadRecord.swift in Sources */,
 				F60FCD42EE8D260B67BA585A /* GuestUploadSession.swift in Sources */,
 				061762F60D8D7E5B045B2AD8 /* GuestUploadView.swift in Sources */,
 				6B9A720746569E11A7E84C24 /* KeychainStore.swift in Sources */,
 				294931D2D103D3ADC80B19B2 /* LoggingUtils.swift in Sources */,
 				7E2C41359EB2A9174A2F89FB /* LoginView.swift in Sources */,
-				21C3F352C8EE6B721E96171E /* MediaPlayerView.swift in Sources */,
 				4F1ED7510D79C2347D12EE9F /* MediaResourceLoader.swift in Sources */,
 				48B3AE4EAF1FFBC062A69FB2 /* MultipartInputStream.swift in Sources */,
 				B03B449613874E62B20A3200 /* NetworkProgressUploadClient.swift in Sources */,
@@ -396,6 +383,7 @@
 				VC001A0000000000000000001 /* VideoListContext.swift in Sources */,
 				TL001A0000000000000000001 /* ThumbnailLoader.swift in Sources */,
 				UV001A0000000000000000001 /* UnifiedVideoPlayerView.swift in Sources */,
+				UL001A0000000000000000001 /* UnifiedVideoListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -435,7 +423,6 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHiveShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Sources/ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -460,7 +447,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -512,6 +498,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -536,6 +523,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -578,6 +566,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				ENABLE_BITCODE = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -595,6 +584,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -606,7 +596,6 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Configs/GigHiveShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Sources/ShareExtension/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -629,7 +618,6 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -660,7 +648,6 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -689,7 +676,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WB7D4FC7XU;
 				INFOPLIST_FILE = Configs/AppInfo.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				LD_RUNPATH_SEARCH_PATHS = (

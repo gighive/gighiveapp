@@ -165,6 +165,28 @@ Before implementing any fix or new code in PHP, Ansible, Swift, or any other lan
 
 Any fix or new feature documented in a `problem_*.md`, `feature_*.md`, `pr_*.md`, or `refactor_*.md` doc MUST include one or more corresponding tests in `post_build_checks/tasks/main.yml` or the most appropriate Ansible role. A solution without a test is incomplete and must not be marked done. Tests must be permanent (not one-shot), tagged `[smoke]` at minimum, and must exercise the specific behavior the fix addresses.
 
+### General — "must never" statements require a corresponding test
+
+Any statement in a doc that uses the phrase "must never" (or an equivalent strong invariant such as "must not", "never allowed", "always rejected") MUST have a corresponding automated test that proves the invariant holds. The test must be added to `post_build_checks/tasks/main.yml` or `validate_app` (server-side invariants) or noted explicitly as an iOS XCTest (client-side invariants that cannot be exercised via Ansible). A "must never" statement with no corresponding test is a documentation debt that must be resolved before the phase it appears in is marked complete. Each doc's implementation plan must include a dedicated `## Tests` section that lists every test by T-number, what it validates, and where it lives (Ansible role or iOS XCTest).
+
+Before assigning any T-number in a new doc, verify it does not conflict with reservations in any existing planning doc (`feature_*.md`, `refactor_*.md`, `pr_*.md`, `problem_*.md`). T-numbers are a shared namespace across the entire project — a conflict discovered after implementation causes task-name collisions in Ansible output and log disambiguation failures. The safe approach is to grep all `gighiveinfra/docs/*.md` files for the candidate number before using it.
+
+### General — iOS changes require iOS tests following `testing_ios.md`
+
+Any `refactor_*.md`, `pr_*.md`, `problem_*.md`, or `feature_*.md` doc that involves changes to iOS source files (`GigHive/Sources/App/` or any Swift file in the `gighiveapp` repo) MUST include corresponding iOS tests in the doc's `## Tests` section. Those tests must follow the format and methodology defined in `gighiveinfra/docs/testing_ios.md` exactly:
+
+- Sequential test numbers continuing from the last number in `testing_ios.md`'s "What is tested" list
+- First-person "I will…" phrasing for the numbered description in the "What is tested" list
+- Swift method names following the `testPhaseName_Behaviour` convention
+- UI tests placed in `GigHiveUITests.swift` under the appropriate `// MARK: - Phase N` block; unit tests placed in `GigHiveTests.swift` under the same mark
+- Credentials listed in the `testing_ios.md` credentials table; new env vars added there before the test is written
+- New `accessibilityIdentifier` values registered in the `testing_ios.md` Accessibility Identifiers table before the test that uses them
+- New launch arguments documented in the `testing_ios.md` Launch Arguments section before use
+- When a phase introduces tests across multiple target files (e.g., both `GigHiveUITests.swift` and `GigHiveTests.swift`), add a `File` column to the test inventory table: `| Test | File | Needs credentials | What it verifies |`; for phases where all tests are in a single file, match the existing `| Test | Needs credentials | What it verifies |` format used in Phases 1–4
+- `XCTSkip` (not `XCTFail`) when required env vars are absent, so the suite passes in environments where the credentials are not configured
+
+When a doc includes iOS tests, `testing_ios.md` must be updated in the same change window — it is the canonical registry of all iOS test numbers, method names, env vars, accessibility identifiers, and launch arguments. Do not assign a test number or method name in a doc without first confirming it does not conflict with an existing entry in `testing_ios.md`.
+
 ### General — Never hardcode variables or literals
 
 No string literals, numeric values, filesystem paths, URLs, port numbers, or environment-specific values may be hardcoded anywhere in PHP files, Jinja2 templates, Ansible tasks, or any other file. Every such value must come from a `group_vars` variable, a PHP constant defined centrally, or an environment variable injected via `.env.j2`. If a value is deployment-specific (e.g., a path, a hostname, a threshold, a timeout), it belongs in `group_vars`. Use `group_vars` wherever possible.
@@ -397,6 +419,15 @@ drafted, always perform the following checks before presenting it as final:
 - When a doc describes implementation, include the exact files or subsystems involved.
 - Keep terminology aligned with the product vocabulary actually in use.
 
+- **Implementation sections** — applies to `feature_*`, `pr_*`, `problem_*`, and `refactor_*` docs wherever a multi-step implementation plan appears.
+- The implementation section is the execution blueprint. A developer who has never seen the codebase should be able to read a phase, execute Step 1, verify it, execute Step 2, and so on — without needing to ask a single clarifying question.
+- **Divide the work into phases.** Each phase has a single goal that can be stated in one sentence. Phases must be executable in sequence — Phase 2 never starts until Phase 1 is verified complete.
+- **Open each phase with its goal.** One sentence. What problem does this phase solve? Completing it should leave the system in a clean, shippable intermediate state.
+- **Put supporting context before the steps.** Design decisions, SQL sketches, dependency notes, and option comparisons go before the step list. Steps should never reference concepts that haven't been explained earlier in the same phase section.
+- **List every action as a numbered step using `- [ ] **Step N**`.** Each step is one discrete, verifiable unit of work — one file change, one DDL command, one smoke test addition. If a step cannot be verified on its own, it is too coarse and should be split. If two items are always done together, they belong in one step. Completed steps use `[x]`; incomplete steps use `[ ]`.
+- **State blockers explicitly.** If a step cannot begin until a decision is made or a prior phase is verified, say so in plain language before the step list — not buried inside a step.
+- **End each phase with a horizontal rule (`---`).** This visually separates phases and makes it easy to scan the document for where one phase ends and the next begins.
+
 - **Feature docs**
 - Use the pattern seen in recent docs such as `docs/feature_mcp_server_doc_addition.md` and `docs/feature_completed_import_media_from_zip.md`.
 - Preferred outline:
@@ -466,6 +497,7 @@ drafted, always perform the following checks before presenting it as final:
   - `## Goal` — the change stated as a policy; one sentence + bold policy statement
   - `## Industry Precedent` — comparable systems or prior art that validate the approach
   - `## Decision` — the chosen design, stated as settled fact (not open question)
+  - `## Benefits / Potential Drawbacks` — two-column list of concrete benefits and honest trade-offs or risks of the chosen approach; required for any refactor that involves a meaningful architectural choice
   - `## Real World Use Cases` — before/after scenario tables with named personas
   - `## Design Principles` — constraints and invariants that must hold after the refactor
   - `## Current State` (or `## Current Auth Model`, etc.) — what the existing code does and why it creates the problem
@@ -518,7 +550,7 @@ docker exec -i mysqlServer bash -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" media
 
 ## Debugging Protocol
 
-When a problem arises, **DO NOT SPECULATE**. Follow this process:
+When a problem arises, **DO NOT SPECULATE**. I want concrete evidence for our course of action.  Follow this process:
 
 1. Build a decision tree of what must be true or false at each layer (network, server, app).
 2. Give concrete, copy-pastable commands to test each node.

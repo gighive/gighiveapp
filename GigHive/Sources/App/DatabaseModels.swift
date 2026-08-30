@@ -11,6 +11,7 @@ struct MediaEntry: Codable, Identifiable {
     let fileType: String
     let fileName: String
     let url: String
+    let thumbnailUrl: String?
 
     enum CodingKeys: String, CodingKey {
         case id, index, date, duration
@@ -20,6 +21,7 @@ struct MediaEntry: Codable, Identifiable {
         case fileType = "file_type"
         case fileName = "file_name"
         case url
+        case thumbnailUrl = "thumbnail_url"
     }
 }
 

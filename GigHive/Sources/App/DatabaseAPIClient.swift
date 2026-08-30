@@ -74,6 +74,41 @@ final class DatabaseAPIClient {
         return decoded.entries
     }
 
+    /// Admin delete — sends `{"asset_ids": [fileId]}`. No delete token required; the server
+    /// trusts the admin HTTP credential and skips token validation entirely.
+    func deleteMediaFileAsAdmin(fileId: Int) async throws -> DeleteMediaResponse {
+        guard fileId > 0 else { throw DatabaseError.serverMessage("Invalid file_id") }
+
+        let url = baseURL.appendingPathComponent("db/delete_media_files.php")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json,text/html;q=0.9", forHTTPHeaderField: "Accept")
+        credential?.apply(to: &request)
+
+        let body: [String: Any] = ["asset_ids": [fileId]]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+
+        let session = makeSession()
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw DatabaseError.invalidResponse }
+
+        if http.statusCode != 200 {
+            if let msg = String(data: data, encoding: .utf8), !msg.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                throw DatabaseError.serverMessage(msg)
+            }
+            throw DatabaseError.httpError(http.statusCode)
+        }
+
+        do {
+            return try JSONDecoder().decode(DeleteMediaResponse.self, from: data)
+        } catch {
+            throw DatabaseError.invalidResponse
+        }
+    }
+
+    /// Uploader delete — sends `{"asset_id": fileId, "delete_token": token}`. The server
+    /// validates the token hash against the stored value before deleting.
     func deleteMediaFile(fileId: Int, deleteToken: String) async throws -> DeleteMediaResponse {
         guard fileId > 0 else { throw DatabaseError.serverMessage("Invalid file_id") }
         let token = deleteToken.trimmingCharacters(in: .whitespacesAndNewlines)

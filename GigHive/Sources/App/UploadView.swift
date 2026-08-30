@@ -419,7 +419,11 @@ struct UploadView: View {
 
 
                         if successURL != nil {
-                            NavigationLink(destination: DatabaseView()) {
+                            NavigationLink(destination: UnifiedVideoListView(context: .authenticated(
+                                baseURL: session.baseURL ?? URL(string: "https://example.com")!,
+                                credential: session.credential,
+                                allowInsecureTLS: session.allowInsecureTLS
+                            ))) {
                                 Text("View in Database")
                                     .frame(maxWidth: .infinity)
                             }

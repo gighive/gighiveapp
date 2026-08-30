@@ -51,7 +51,7 @@ extension VideoListContext {
                 canSearch: true,
                 canLivePoll: false,
                 canShowNewBadge: true,
-                deleteScope: .none  // Phase 4: changes to .uploaderAndAdmin when server prereq is met
+                deleteScope: .uploaderAndAdmin
             )
         }
     }
@@ -92,6 +92,10 @@ struct UnifiedVideo: Identifiable {
     let isOwnUpload: Bool
     /// true when this entry has been flagged/reported by the current user
     let isReported: Bool
+    /// Recording date string — authenticated: MediaEntry.date (e.g. "2005-03-03"); guest: nil
+    let date: String?
+    /// Formatted duration string — authenticated: MediaEntry.duration trimmed from "HH:MM:SS" (e.g. "6:00", "1:06:00"); guest: nil
+    let duration: String?
 }
 
 // MARK: - MediaFileType
